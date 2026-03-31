@@ -3,17 +3,24 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Content, PageSection } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import './example.css';
+import { consoleFetchJSON } from '@openshift-console/dynamic-plugin-sdk';
 
 export default function ExamplePage() {
-  const { t } = useTranslation('plugin__console-plugin-template');
+  const { t } = useTranslation('plugin__console-plugin-capsule');
 
+  const data = consoleFetchJSON('/api/proxy/plugin/console-plugin-capsule/capsule/api/v1/namespaces')
+  data.then((x) => {
+    console.log(x)
+  }).catch((e) => {
+    console.log(e)
+  })
   return (
     <>
       <DocumentTitle>{t('Hello, plugin!')}</DocumentTitle>
       <ListPageHeader title={t('Hello, plugin!')} />
       <PageSection>
         <Content component="p">
-          <span className="console-plugin-template__nice">
+          <span className="console-plugin-capsule__nice">
             <CheckCircleIcon /> {t('Success!')}
           </span>{' '}
           {t('Your plugin is working.')}
