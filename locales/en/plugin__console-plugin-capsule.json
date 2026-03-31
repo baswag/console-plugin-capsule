@@ -1,0 +1,23 @@
+{
+  "Cancel": "Cancel",
+  "Capsule Tenants": "Capsule Tenants",
+  "Create": "Create",
+  "Create Namespace": "Create Namespace",
+  "Created": "Created",
+  "Error": "Error",
+  "Failed to create namespace": "Failed to create namespace",
+  "Failed to fetch namespaces": "Failed to fetch namespaces",
+  "Failed to fetch tenants": "Failed to fetch tenants",
+  "Loading namespaces": "Loading namespaces",
+  "Loading tenants": "Loading tenants",
+  "Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.": "Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.",
+  "Name": "Name",
+  "Namespace count": "Namespace count",
+  "Namespace will be assigned to tenant: {{tenant}}": "Namespace will be assigned to tenant: {{tenant}}",
+  "Owners": "Owners",
+  "Select tenant": "Select tenant",
+  "State": "State",
+  "Status": "Status",
+  "Tenant": "Tenant",
+  "Tenant Namespaces": "Tenant Namespaces"
+}
