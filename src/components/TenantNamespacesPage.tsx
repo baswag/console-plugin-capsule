@@ -4,10 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import {
   DocumentTitle,
   ListPageHeader,
+  ResourceLink,
   Timestamp,
   consoleFetchJSON,
 } from '@openshift-console/dynamic-plugin-sdk';
 import {
+  Button,
   MenuToggle,
   Pagination,
   Select,
@@ -16,6 +18,7 @@ import {
   Spinner,
   ToolbarItem,
 } from '@patternfly/react-core';
+import CreateNamespaceModal from './CreateNamespaceModal';
 import { ISortBy, OnSort } from '@patternfly/react-table';
 import {
   DataView,
@@ -79,6 +82,8 @@ export default function TenantNamespacesPage() {
   const [namespaces, setNamespaces] = useState<Namespace[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   // Fetch tenant list for the dropdown
   useEffect(() => {
@@ -111,7 +116,7 @@ export default function TenantNamespacesPage() {
         setLoadError(e.message ?? t('Failed to fetch namespaces'));
         setLoaded(true);
       });
-  }, [selectedTenant, t]);
+  }, [selectedTenant, t, refreshToken]);
 
   const onTenantSelect = (_: React.MouseEvent | undefined, value: string | number | undefined) => {
     const name = String(value);
@@ -176,7 +181,7 @@ export default function TenantNamespacesPage() {
   }));
 
   const rows: DataViewTr[] = paginated.map((ns) => [
-    ns.metadata.name,
+    <ResourceLink key="name" groupVersionKind={{ group: 'project.openshift.io', version: 'v1', kind: 'Project' }} name={ns.metadata.name} />,
     ns.status?.phase ?? '—',
     <Timestamp key="ts" timestamp={ns.metadata.creationTimestamp} />,
   ]);
@@ -242,6 +247,15 @@ export default function TenantNamespacesPage() {
               </DataViewFilters>
             </>
           }
+          actions={
+            <Button
+              variant="primary"
+              isDisabled={!selectedTenant}
+              onClick={() => setCreateModalOpen(true)}
+            >
+              {t('Create Namespace')}
+            </Button>
+          }
           pagination={
             <Pagination
               itemCount={sorted.length}
@@ -262,6 +276,16 @@ export default function TenantNamespacesPage() {
           }}
         />
       </DataView>
+      {createModalOpen && (
+        <CreateNamespaceModal
+          tenant={selectedTenant}
+          onClose={() => setCreateModalOpen(false)}
+          onCreated={() => {
+            setCreateModalOpen(false);
+            setRefreshToken((n) => n + 1);
+          }}
+        />
+      )}
     </>
   );
 }
