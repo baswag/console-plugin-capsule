@@ -34,5 +34,23 @@
       "perspective": "admin",
       "section": "home"
     }
+  },
+  {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-namespaces",
+      "component": { "$codeRef": "TenantNamespacesPage" }
+    }
+  },
+  {
+    "type": "console.navigation/href",
+    "properties": {
+      "id": "capsule-namespaces",
+      "name": "%plugin__console-plugin-capsule~Tenant Namespaces%",
+      "href": "/capsule-namespaces",
+      "perspective": "admin",
+      "section": "home"
+    }
   }
 ]

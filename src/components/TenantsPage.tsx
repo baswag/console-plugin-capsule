@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import {
   DocumentTitle,
@@ -6,7 +7,7 @@ import {
   Timestamp,
   consoleFetchJSON,
 } from '@openshift-console/dynamic-plugin-sdk';
-import { Pagination, Spinner } from '@patternfly/react-core';
+import { Button, Pagination, Spinner } from '@patternfly/react-core';
 import { ISortBy, OnSort } from '@patternfly/react-table';
 import {
   DataView,
@@ -71,6 +72,7 @@ const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
 
 export default function TenantsPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
+  const navigate = useNavigate();
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -149,7 +151,7 @@ export default function TenantsPage() {
   );
 
   const rows: DataViewTr[] = paginated.map((tenant) => [
-    tenant.metadata.name,
+    <Button key="name" variant="link" isInline onClick={() => navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`)}>{tenant.metadata.name}</Button>,
     tenant.status?.state ?? '—',
     String(tenant.status?.size ?? tenant.status?.namespaces?.length ?? 0),
     (tenant.spec.owners ?? []).map((o) => `${o.name} (${o.kind})`).join(', ') || '—',
