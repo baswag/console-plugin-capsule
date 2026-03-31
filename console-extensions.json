@@ -16,5 +16,23 @@
       "perspective": "admin",
       "section": "home"
     }
+  },
+  {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-tenants",
+      "component": { "$codeRef": "TenantsPage" }
+    }
+  },
+  {
+    "type": "console.navigation/href",
+    "properties": {
+      "id": "capsule-tenants",
+      "name": "%plugin__console-plugin-capsule~Capsule Tenants%",
+      "href": "/capsule-tenants",
+      "perspective": "admin",
+      "section": "home"
+    }
   }
 ]
