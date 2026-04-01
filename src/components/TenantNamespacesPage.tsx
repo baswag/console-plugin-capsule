@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import {
@@ -74,16 +74,20 @@ export default function TenantNamespacesPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const queryTenant = new URLSearchParams(location.search).get('tenant') ?? '';
+  const selectedTenant = new URLSearchParams(location.search).get('tenant') ?? '';
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [selectedTenant, setSelectedTenant] = useState(queryTenant);
   const [tenantSelectOpen, setTenantSelectOpen] = useState(false);
-  const [namespaces, setNamespaces] = useState<Namespace[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fetchResult, setFetchResult] = useState<{
+    fetchedFor: string;
+    namespaces: Namespace[];
+    loadError: string | null;
+  }>({ fetchedFor: '', namespaces: [], loadError: null });
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  const fetchKey = selectedTenant ? `${selectedTenant}:${refreshToken}` : '';
+  const loaded = !fetchKey || fetchResult.fetchedFor === fetchKey;
 
   // Fetch tenant list for the dropdown
   useEffect(() => {
@@ -96,41 +100,42 @@ export default function TenantNamespacesPage() {
   useEffect(() => {
     if (!selectedTenant && tenants.length > 0) {
       const first = tenants[0].metadata.name;
-      setSelectedTenant(first);
       navigate(`${location.pathname}?tenant=${first}`, { replace: true });
     }
   }, [tenants, selectedTenant, navigate, location.pathname]);
 
   // Fetch namespaces for selected tenant
   useEffect(() => {
-    if (!selectedTenant) return;
-    setLoaded(false);
-    setLoadError(null);
+    if (!fetchKey) return;
     const url = `${PROXY_BASE}/api/v1/namespaces?labelSelector=${encodeURIComponent(`capsule.clastix.io/tenant=${selectedTenant}`)}`;
     consoleFetchJSON(url)
       .then((data: { items: Namespace[] }) => {
-        setNamespaces(data.items ?? []);
-        setLoaded(true);
+        setFetchResult({ fetchedFor: fetchKey, namespaces: data.items ?? [], loadError: null });
       })
       .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch namespaces'));
-        setLoaded(true);
+        setFetchResult({
+          fetchedFor: fetchKey,
+          namespaces: [],
+          loadError: e.message ?? t('Failed to fetch namespaces'),
+        });
       });
-  }, [selectedTenant, t, refreshToken]);
+  }, [fetchKey, selectedTenant, t]);
 
   const onTenantSelect = (_: React.MouseEvent | undefined, value: string | number | undefined) => {
     const name = String(value);
-    setSelectedTenant(name);
     setTenantSelectOpen(false);
     navigate(`${location.pathname}?tenant=${name}`);
-    setLoaded(false);
   };
 
   const { filters, onSetFilters } = useDataViewFilters<NamespaceFilters>({
     initialFilters: { name: '' },
   });
 
-  const { onSort: dvOnSort, sortBy: sortByKey, direction } = useDataViewSort({
+  const {
+    onSort: dvOnSort,
+    sortBy: sortByKey,
+    direction,
+  } = useDataViewSort({
     initialSort: { sortBy: 'name', direction: 'asc' },
   });
 
@@ -139,11 +144,11 @@ export default function TenantNamespacesPage() {
   const filtered = useMemo(
     () =>
       filters.name
-        ? namespaces.filter((ns) =>
+        ? fetchResult.namespaces.filter((ns) =>
             ns.metadata.name.toLowerCase().includes(filters.name.toLowerCase()),
           )
-        : namespaces,
-    [namespaces, filters.name],
+        : fetchResult.namespaces,
+    [fetchResult.namespaces, filters.name],
   );
 
   const sortIdx = COLUMN_KEYS.indexOf(sortByKey as ColumnKey);
@@ -181,14 +186,18 @@ export default function TenantNamespacesPage() {
   }));
 
   const rows: DataViewTr[] = paginated.map((ns) => [
-    <ResourceLink key="name" groupVersionKind={{ group: 'project.openshift.io', version: 'v1', kind: 'Project' }} name={ns.metadata.name} />,
+    <ResourceLink
+      key="name"
+      groupVersionKind={{ group: 'project.openshift.io', version: 'v1', kind: 'Project' }}
+      name={ns.metadata.name}
+    />,
     ns.status?.phase ?? '—',
     <Timestamp key="ts" timestamp={ns.metadata.creationTimestamp} />,
   ]);
 
   const activeState = !loaded
     ? DataViewState.loading
-    : loadError
+    : fetchResult.loadError
       ? DataViewState.error
       : undefined;
 
@@ -272,7 +281,7 @@ export default function TenantNamespacesPage() {
           rows={rows}
           bodyStates={{
             [DataViewState.loading]: <Spinner aria-label={t('Loading namespaces')} />,
-            [DataViewState.error]: <>{loadError}</>,
+            [DataViewState.error]: <>{fetchResult.loadError}</>,
           }}
         />
       </DataView>

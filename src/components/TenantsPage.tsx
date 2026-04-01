@@ -94,7 +94,11 @@ export default function TenantsPage() {
     initialFilters: { name: '' },
   });
 
-  const { onSort: dvOnSort, sortBy: sortByKey, direction } = useDataViewSort({
+  const {
+    onSort: dvOnSort,
+    sortBy: sortByKey,
+    direction,
+  } = useDataViewSort({
     initialSort: { sortBy: 'name', direction: 'asc' },
   });
 
@@ -103,9 +107,7 @@ export default function TenantsPage() {
   const filtered = useMemo(
     () =>
       filters.name
-        ? tenants.filter((t) =>
-            t.metadata.name.toLowerCase().includes(filters.name.toLowerCase()),
-          )
+        ? tenants.filter((t) => t.metadata.name.toLowerCase().includes(filters.name.toLowerCase()))
         : tenants,
     [tenants, filters.name],
   );
@@ -151,18 +153,21 @@ export default function TenantsPage() {
   );
 
   const rows: DataViewTr[] = paginated.map((tenant) => [
-    <Button key="name" variant="link" isInline onClick={() => navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`)}>{tenant.metadata.name}</Button>,
+    <Button
+      key="name"
+      variant="link"
+      isInline
+      onClick={() => navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`)}
+    >
+      {tenant.metadata.name}
+    </Button>,
     tenant.status?.state ?? '—',
     String(tenant.status?.size ?? tenant.status?.namespaces?.length ?? 0),
     (tenant.spec.owners ?? []).map((o) => `${o.name} (${o.kind})`).join(', ') || '—',
     <Timestamp key="ts" timestamp={tenant.metadata.creationTimestamp} />,
   ]);
 
-  const activeState = !loaded
-    ? DataViewState.loading
-    : loadError
-      ? DataViewState.error
-      : undefined;
+  const activeState = !loaded ? DataViewState.loading : loadError ? DataViewState.error : undefined;
 
   return (
     <>
@@ -172,7 +177,9 @@ export default function TenantsPage() {
         <DataViewToolbar
           filters={
             <DataViewFilters<TenantFilters>
-              onChange={(_key: string, newValues: Partial<TenantFilters>) => onSetFilters(newValues)}
+              onChange={(_key: string, newValues: Partial<TenantFilters>) =>
+                onSetFilters(newValues)
+              }
               values={filters}
             >
               <DataViewTextFilter

@@ -29,7 +29,11 @@ interface CreateNamespaceModalProps {
   onCreated: () => void;
 }
 
-export default function CreateNamespaceModal({ tenant, onClose, onCreated }: CreateNamespaceModalProps) {
+export default function CreateNamespaceModal({
+  tenant,
+  onClose,
+  onCreated,
+}: CreateNamespaceModalProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -43,16 +47,17 @@ export default function CreateNamespaceModal({ tenant, onClose, onCreated }: Cre
     setSubmitting(true);
     setError(null);
 
-    consoleFetchJSON.post(NAMESPACES_URL, {
-      apiVersion: 'v1',
-      kind: 'Namespace',
-      metadata: {
-        name,
-        labels: {
-          'capsule.clastix.io/tenant': tenant,
+    consoleFetchJSON
+      .post(NAMESPACES_URL, {
+        apiVersion: 'v1',
+        kind: 'Namespace',
+        metadata: {
+          name,
+          labels: {
+            'capsule.clastix.io/tenant': tenant,
+          },
         },
-      },
-    })
+      })
       .then(() => {
         onCreated();
       })
@@ -64,14 +69,23 @@ export default function CreateNamespaceModal({ tenant, onClose, onCreated }: Cre
 
   return (
     <Modal isOpen onClose={onClose} variant="small">
-      <ModalHeader title={t('Create Namespace')} description={t('Namespace will be assigned to tenant: {{tenant}}', { tenant })} />
+      <ModalHeader
+        title={t('Create Namespace')}
+        description={t('Namespace will be assigned to tenant: {{tenant}}', { tenant })}
+      />
       <ModalBody>
         {error && (
           <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
             {error}
           </Alert>
         )}
-        <Form id="create-namespace-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        <Form
+          id="create-namespace-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
           <FormGroup label={t('Name')} isRequired fieldId="ns-name">
             <TextInput
               id="ns-name"
@@ -84,7 +98,9 @@ export default function CreateNamespaceModal({ tenant, onClose, onCreated }: Cre
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem variant="error">
-                    {t('Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.')}
+                    {t(
+                      'Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.',
+                    )}
                   </HelperTextItem>
                 </HelperText>
               </FormHelperText>
