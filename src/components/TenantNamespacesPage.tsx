@@ -85,6 +85,7 @@ export default function TenantNamespacesPage() {
   }>({ fetchedFor: '', namespaces: [], loadError: null });
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [pendingNamespace, setPendingNamespace] = useState<string | null>(null);
 
   const fetchKey = selectedTenant ? `${selectedTenant}:${refreshToken}` : '';
   const loaded = !fetchKey || fetchResult.fetchedFor === fetchKey;
@@ -103,6 +104,15 @@ export default function TenantNamespacesPage() {
       navigate(`${location.pathname}?tenant=${first}`, { replace: true });
     }
   }, [tenants, selectedTenant, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (!pendingNamespace || !loaded) return;
+    const found = fetchResult.namespaces.some((ns) => ns.metadata.name === pendingNamespace);
+    const timer = found
+      ? setTimeout(() => setPendingNamespace(null), 0)
+      : setTimeout(() => setRefreshToken((n) => n + 1), 1000);
+    return () => clearTimeout(timer);
+  }, [pendingNamespace, loaded, fetchResult.namespaces]);
 
   // Fetch namespaces for selected tenant
   useEffect(() => {
@@ -289,8 +299,9 @@ export default function TenantNamespacesPage() {
         <CreateNamespaceModal
           tenant={selectedTenant}
           onClose={() => setCreateModalOpen(false)}
-          onCreated={() => {
+          onCreated={(name) => {
             setCreateModalOpen(false);
+            setPendingNamespace(name);
             setRefreshToken((n) => n + 1);
           }}
         />

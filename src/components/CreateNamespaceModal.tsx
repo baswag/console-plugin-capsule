@@ -26,7 +26,8 @@ const NS_PATTERN = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/;
 interface CreateNamespaceModalProps {
   tenant: string;
   onClose: () => void;
-  onCreated: () => void;
+  // eslint-disable-next-line no-unused-vars
+  onCreated: (name: string) => void;
 }
 
 export default function CreateNamespaceModal({
@@ -59,7 +60,7 @@ export default function CreateNamespaceModal({
         },
       })
       .then(() => {
-        onCreated();
+        onCreated(name);
       })
       .catch((e: Error) => {
         setError(e.message ?? t('Failed to create namespace'));
