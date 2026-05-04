@@ -1,5 +1,13 @@
 [
   {
+    "type": "console.navigation/section",
+    "properties": {
+      "id": "capsule",
+      "perspective": "admin",
+      "name": "Capsule"
+    }
+  },
+  {
     "type": "console.page/route",
     "properties": {
       "exact": true,
@@ -14,7 +22,7 @@
       "name": "%plugin__console-plugin-capsule~Capsule Tenants%",
       "href": "/capsule-tenants",
       "perspective": "admin",
-      "section": "home"
+      "section": "capsule"
     }
   },
   {
@@ -32,7 +40,7 @@
       "name": "%plugin__console-plugin-capsule~Tenant Namespaces%",
       "href": "/capsule-namespaces",
       "perspective": "admin",
-      "section": "home"
+      "section": "capsule"
     }
   }
 ]
