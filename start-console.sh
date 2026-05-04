@@ -43,8 +43,6 @@ if [ -x "$(command -v podman)" ]; then
     if [ "$(uname -s)" = "Linux" ]; then
         # Use host networking on Linux since host.containers.internal is unreachable in some environments.
         BRIDGE_PLUGINS="${PLUGIN_NAME}=http://localhost:9001"
-        # BRIDGE_PLUGIN_PROXY=
-        # printenv
         podman run --pull always --platform $CONSOLE_IMAGE_PLATFORM --rm --network=host --env-file <(set | grep BRIDGE) -e BRIDGE_PLUGIN_PROXY="$(printf '{"services": [{"consoleAPIPath": "/api/proxy/plugin/%s/capsule/", "endpoint": "https://localhost:8080", "authorize": true}]}' "${PLUGIN_NAME}")" $CONSOLE_IMAGE
     else
         BRIDGE_PLUGINS="${PLUGIN_NAME}=http://host.containers.internal:9001"

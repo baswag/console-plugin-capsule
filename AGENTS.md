@@ -12,11 +12,11 @@ This is a **template repository** for creating OpenShift Console dynamic plugins
 > **Only make changes that should be standard practice for ALL plugins created from this template.** If a change is specific to one plugin use case, it belongs in the instantiated plugin repository, not in this template.
 
 **Key Technologies:**
-- TypeScript + React 17
+- TypeScript + React 18
 - PatternFly 6 (UI component library)
 - Webpack 5 with Module Federation
 - react-i18next for internationalization
-- Cypress for e2e testing
+- Playwright for e2e testing
 - Helm for deployment
 
 **Compatibility:** Requires OpenShift 4.12+ (uses ConsolePlugin CRD v1 API)
@@ -47,23 +47,23 @@ This plugin uses webpack module federation to load at runtime into the OpenShift
 - **NO hex colors** - use PatternFly CSS variables (e.g., `var(--pf-v6-global-palette--blue-500)`)
 - **NO naked element selectors** (like `table`, `div`) - prevents overwriting console styles
 - **NO `.pf-` or `.co-` prefixed classes** - these are reserved for PatternFly and console
-- **Prefix all custom classes** with plugin name (e.g., `console-plugin-capsule__nice`)
+- **Prefix all custom classes** with plugin name (e.g., `console-plugin-template__nice`)
 
 Don't disable these rules without understanding they protect against layout breakage!
 
 ## Internationalization (i18n)
 
-**Namespace Convention:** `plugin__<plugin-name>` (e.g., `plugin__console-plugin-capsule`)
+**Namespace Convention:** `plugin__<plugin-name>` (e.g., `plugin__console-plugin-template`)
 
 ### In React Components:
 ```tsx
-const { t } = useTranslation('plugin__console-plugin-capsule');
+const { t } = useTranslation('plugin__console-plugin-template');
 return <h1>{t('Hello, World!')}</h1>;
 ```
 
 ### In console-extensions.json:
 ```json
-"name": "%plugin__console-plugin-capsule~My Label%"
+"name": "%plugin__console-plugin-template~My Label%"
 ```
 
 **After adding/changing messages:** Run `yarn i18n` to update locale files in `/locales`
@@ -81,7 +81,7 @@ tsconfig.json          # TypeScript config (strict: false currently)
 webpack.config.ts      # Module federation + build config
 locales/               # i18n translation files
 charts/                # Helm chart for deployment
-integration-tests/     # Cypress e2e tests
+integration-tests/     # Playwright e2e tests
 ```
 
 ## Development Workflow
@@ -98,18 +98,16 @@ integration-tests/     # Cypress e2e tests
 - Follow existing code patterns in the repo
 
 ### Testing
-- `yarn test-cypress` - opens Cypress UI
-- `yarn test-cypress-headless` - runs Cypress in CI mode
+- `yarn test` - runs Jest unit tests
+- `yarn test-e2e` - opens Playwright in headed mode
+- `yarn test-e2e-headless` - runs Playwright in headless mode
 - Add e2e tests for new pages/features
 
 ## TypeScript Configuration
 
-Current config has `strict: false` but enforces:
+Current config has `strict: true` and enforces:
 - `noUnusedLocals: true`
 - All files should use `.tsx` extension
-- Target: ES2020
-
-**Modernization opportunity:** When touching files, consider enabling stricter TypeScript checks.
 
 ## Common Development Tasks
 
@@ -135,7 +133,7 @@ Current config has `strict: false` but enforces:
   "type": "console.navigation/href",
   "properties": {
     "id": "my-nav-item",
-    "name": "%plugin__console-plugin-capsule~My Page%",
+    "name": "%plugin__console-plugin-template~My Page%",
     "href": "/my-page",
     "perspective": "admin",
     "section": "home"
@@ -177,8 +175,7 @@ helm upgrade -i my-plugin charts/openshift-console-plugin \
 4. **Module federation requires exact module mapping** - `exposedModules` must match `$codeRef` values
 5. **PatternFly CSS variables only** - hex colors break dark mode
 6. **No webpack HMR for extensions** - changes to `console-extensions.json` require restart
-7. **TypeScript not in strict mode** - legacy choice, can be modernized
-8. **React 17, not 18** - matches console's React version
+7. **React 18** - matches console's React version
 
 ## Extension Points
 
@@ -204,9 +201,9 @@ See [Console Plugin SDK README](https://github.com/openshift/console/tree/master
 
 ## Testing Strategy
 
-- **E2E tests (Cypress):** For user flows and page rendering
-- **Component tests:** Add when components have complex logic
-- **Test data attributes:** Use `data-test` attributes for selectors
+- **E2E tests (Playwright):** For user flows and page rendering
+- **Unit tests (Jest):** For component logic and plugin metadata
+- **Test data attributes:** Use `data-test` attributes for selectors (`testIdAttribute` is configured in `playwright.config.ts`)
 - Run tests locally before opening PRs
 
 ## References
@@ -223,5 +220,5 @@ See [Console Plugin SDK README](https://github.com/openshift/console/tree/master
 - **Add a page?** Update console-extensions.json + exposedModules + create component
 - **Style something?** Use PatternFly components and CSS variables, prefix custom classes
 - **Add translations?** Use `t()` function, run `yarn i18n` after
-- **Test changes?** Run locally with `yarn start` + `yarn start-console`, add Cypress tests
+- **Test changes?** Run locally with `yarn start` + `yarn start-console`, add Playwright tests
 - **Deploy?** Build image, push to registry, install via Helm chart

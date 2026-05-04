@@ -9,7 +9,7 @@ module.exports = {
   locales: ['en'],
   namespaceSeparator: '~',
   reactNamespace: false,
-  defaultNamespace: 'plugin__console-plugin-capsule',
+  defaultNamespace: 'plugin__console-plugin-template',
   useKeysAsDefaultValue: true,
 
   // see below for more details

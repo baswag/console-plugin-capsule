@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, MouseEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
+import { useLocation, useNavigate } from 'react-router';
 import {
   DocumentTitle,
   ListPageHeader,
@@ -131,7 +131,7 @@ export default function TenantNamespacesPage() {
       });
   }, [fetchKey, selectedTenant, t]);
 
-  const onTenantSelect = (_: React.MouseEvent | undefined, value: string | number | undefined) => {
+  const onTenantSelect = (_: MouseEvent | undefined, value: string | number | undefined) => {
     const name = String(value);
     setTenantSelectOpen(false);
     navigate(`${location.pathname}?tenant=${name}`);
@@ -211,7 +211,7 @@ export default function TenantNamespacesPage() {
       ? DataViewState.error
       : undefined;
 
-  const tenantToggle = (toggleRef: React.RefObject<HTMLButtonElement>) => (
+  const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
       ref={toggleRef}
       onClick={() => setTenantSelectOpen((o) => !o)}
