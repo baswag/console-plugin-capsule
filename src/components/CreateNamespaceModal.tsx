@@ -16,9 +16,9 @@ import {
   ModalHeader,
   TextInput,
 } from '@patternfly/react-core';
+import {CAPSULE} from '../utils/capsule'
 
-const PROXY_BASE = '/api/proxy/plugin/console-plugin-capsule/capsule';
-const NAMESPACES_URL = `${PROXY_BASE}/api/v1/namespaces`;
+const NAMESPACES_URL = `${CAPSULE.PROXY_BASE}/api/v1/namespaces`;
 
 // Kubernetes namespace name validation: lowercase alphanumeric and hyphens, max 63 chars
 const NS_PATTERN = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/;

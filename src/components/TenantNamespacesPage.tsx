@@ -33,13 +33,9 @@ import {
   useDataViewSort,
 } from '@patternfly/react-data-view';
 import { DataViewFilters } from '@patternfly/react-data-view/dist/esm/DataViewFilters';
+import {CAPSULE, Tenant} from '../utils/capsule'
 
-const PROXY_BASE = '/api/proxy/plugin/console-plugin-capsule/capsule';
-const TENANTS_URL = `${PROXY_BASE}/apis/capsule.clastix.io/v1beta2/tenants`;
-
-interface Tenant {
-  metadata: { name: string };
-}
+const TENANTS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.TENANTS.API_VERSION}/${CAPSULE.TENANTS.API_KIND}`;
 
 interface Namespace {
   metadata: {
@@ -117,7 +113,7 @@ export default function TenantNamespacesPage() {
   // Fetch namespaces for selected tenant
   useEffect(() => {
     if (!fetchKey) return;
-    const url = `${PROXY_BASE}/api/v1/namespaces?labelSelector=${encodeURIComponent(`capsule.clastix.io/tenant=${selectedTenant}`)}`;
+    const url = `${CAPSULE.PROXY_BASE}/api/v1/namespaces?labelSelector=${encodeURIComponent(`capsule.clastix.io/tenant=${selectedTenant}`)}`;
     consoleFetchJSON(url)
       .then((data: { items: Namespace[] }) => {
         setFetchResult({ fetchedFor: fetchKey, namespaces: data.items ?? [], loadError: null });

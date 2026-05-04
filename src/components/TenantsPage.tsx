@@ -24,33 +24,9 @@ import {
 } from '@patternfly/react-data-view';
 import { DataViewFilters } from '@patternfly/react-data-view/dist/esm/DataViewFilters';
 import { useState } from 'react';
+import {CAPSULE, Tenant, TenantFilters} from '../utils/capsule'
 
-const PROXY_BASE = '/api/proxy/plugin/console-plugin-capsule/capsule';
-const TENANTS_URL = `${PROXY_BASE}/apis/capsule.clastix.io/v1beta2/tenants`;
-
-interface TenantOwner {
-  name: string;
-  kind: string;
-}
-
-interface Tenant {
-  metadata: {
-    name: string;
-    creationTimestamp: string;
-  };
-  spec: {
-    owners?: TenantOwner[];
-  };
-  status?: {
-    namespaces?: string[];
-    size?: number;
-    state?: string;
-  };
-}
-
-interface TenantFilters {
-  name: string;
-}
+const TENANTS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.TENANTS.API_VERSION}/${CAPSULE.TENANTS.API_KIND}`;
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
@@ -76,8 +52,8 @@ export default function TenantsPage() {
   const navigate = useNavigate();
 
   const [canCreate] = useAccessReview({
-    group: 'capsule.clastix.io',
-    resource: 'tenants',
+    group: CAPSULE.API_BASE,
+    resource: CAPSULE.TENANTS.API_KIND,
     verb: 'create',
   });
 
@@ -183,7 +159,7 @@ export default function TenantsPage() {
         {canCreate && (
           <Button
             variant="primary"
-            onClick={() => navigate('/k8s/cluster/capsule.clastix.io~v1beta2~Tenant/~new')}
+            onClick={() => navigate(`/k8s/cluster/${CAPSULE.API_BASE}~${CAPSULE.TENANTS.API_VERSION}~${CAPSULE.TENANTS.API_KIND_SINGLE}/~new`)}
           >
             {t('Create Tenant')}
           </Button>
