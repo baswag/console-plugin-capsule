@@ -6,6 +6,7 @@ import {
   ListPageHeader,
   Timestamp,
   consoleFetchJSON,
+  useAccessReview,
 } from '@openshift-console/dynamic-plugin-sdk';
 import { Button, Pagination, Spinner } from '@patternfly/react-core';
 import { ISortBy, OnSort } from '@patternfly/react-table';
@@ -73,6 +74,12 @@ const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
 export default function TenantsPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const navigate = useNavigate();
+
+  const [canCreate] = useAccessReview({
+    group: 'capsule.clastix.io',
+    resource: 'tenants',
+    verb: 'create',
+  });
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -172,7 +179,16 @@ export default function TenantsPage() {
   return (
     <>
       <DocumentTitle>{t('Capsule Tenants')}</DocumentTitle>
-      <ListPageHeader title={t('Capsule Tenants')} />
+      <ListPageHeader title={t('Capsule Tenants')}>
+        {canCreate && (
+          <Button
+            variant="primary"
+            onClick={() => navigate('/k8s/cluster/capsule.clastix.io~v1beta2~Tenant/~new')}
+          >
+            {t('Create Tenant')}
+          </Button>
+        )}
+      </ListPageHeader>
       <DataView activeState={activeState}>
         <DataViewToolbar
           filters={
