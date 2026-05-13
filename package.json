@@ -92,7 +92,10 @@
     "description": "Template project for OpenShift Console plugins. Edit package.json to change this message and the plugin name.",
     "exposedModules": {
       "TenantsPage": "./components/TenantsPage",
-      "TenantNamespacesPage": "./components/TenantNamespacesPage"
+      "TenantNamespacesPage": "./components/TenantNamespacesPage",
+      "ResourcePoolsPage": "./components/ResourcePoolsPage",
+      "ResourcePoolDetailPage": "./components/ResourcePoolDetailPage",
+      "ResourcePoolClaimDetailPage": "./components/ResourcePoolClaimDetailPage"
     },
     "dependencies": {
       "@console/pluginAPI": "^4.21.0"

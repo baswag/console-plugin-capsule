@@ -42,5 +42,39 @@
       "perspective": "admin",
       "section": "capsule"
     }
+  },
+  {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-resource-pools",
+      "component": { "$codeRef": "ResourcePoolsPage" }
+    }
+  },
+  {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-resource-pools/:name",
+      "component": { "$codeRef": "ResourcePoolDetailPage" }
+    }
+  },
+  {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-resource-pool-claims/:namespace/:name",
+      "component": { "$codeRef": "ResourcePoolClaimDetailPage" }
+    }
+  },
+  {
+    "type": "console.navigation/href",
+    "properties": {
+      "id": "capsule-resource-pools",
+      "name": "%plugin__console-plugin-capsule~Resource Pools%",
+      "href": "/capsule-resource-pools",
+      "perspective": "admin",
+      "section": "capsule"
+    }
   }
 ]
