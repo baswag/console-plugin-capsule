@@ -25,87 +25,12 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { CAPSULE, ResourcePoolClaim, ResourceQuantity, parseResourceValue } from '../utils/capsule';
+import { CAPSULE, ResourcePoolClaim } from '../utils/capsule';
 import './ResourcePoolDetailPage.css';
+import type {V1ResourceQuota} from '@kubernetes/client-node'
+import { UsageGauge } from '../utils/common';
 
 const CLAIMS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}`;
-
-interface ResourceQuota {
-  metadata: { name: string; namespace: string };
-  status?: {
-    hard?: ResourceQuantity;
-    used?: ResourceQuantity;
-  };
-}
-
-interface UsageGaugeProps {
-  resource: string;
-  used: string | undefined;
-  hard: string | undefined;
-}
-
-function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
-  const usedNum = parseResourceValue(used ?? '0');
-  const hardNum = parseResourceValue(hard ?? '0');
-  const pct = hardNum > 0 ? Math.min(100, Math.round((usedNum / hardNum) * 100)) : 0;
-
-  const size = 140;
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = 52;
-  const strokeWidth = 14;
-  const circumference = 2 * Math.PI * r;
-  const progressLen = (pct / 100) * circumference;
-
-  const strokeColor =
-    pct > 90
-      ? 'var(--pf-t--global--color--status--danger--default)'
-      : pct > 70
-        ? 'var(--pf-t--global--color--status--warning--default)'
-        : 'var(--pf-t--global--color--status--info--default)';
-
-  return (
-    <div className="console-plugin-capsule__gauge">
-      <span className="console-plugin-capsule__gauge-title">{resource}</span>
-      <div className="console-plugin-capsule__gauge-ring">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            style={{
-              fill: 'none',
-              stroke: 'var(--pf-t--global--border--color--default)',
-              strokeWidth: `${strokeWidth}`,
-            }}
-          />
-          {pct > 0 && (
-            <circle
-              cx={cx}
-              cy={cy}
-              r={r}
-              style={{
-                fill: 'none',
-                stroke: strokeColor,
-                strokeWidth: `${strokeWidth}`,
-                strokeDasharray: `${progressLen} ${circumference}`,
-                strokeLinecap: 'round',
-              }}
-              transform={`rotate(-90 ${cx} ${cy})`}
-            />
-          )}
-        </svg>
-        <div className="console-plugin-capsule__gauge-center">
-          <span className="console-plugin-capsule__gauge-pct">{pct}&nbsp;%</span>
-          <span className="console-plugin-capsule__gauge-used-label">used</span>
-        </div>
-      </div>
-      <span className="console-plugin-capsule__gauge-subtext">
-        {used ?? '0'} of {hard ?? '0'}
-      </span>
-    </div>
-  );
-}
 
 export default function ResourcePoolClaimDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
@@ -113,7 +38,7 @@ export default function ResourcePoolClaimDetailPage() {
   const navigate = useNavigate();
 
   const [claim, setClaim] = useState<ResourcePoolClaim | null>(null);
-  const [quota, setQuota] = useState<ResourceQuota | null>(null);
+  const [quota, setQuota] = useState<V1ResourceQuota | null>(null);
   const [claimLoaded, setClaimLoaded] = useState(false);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -165,7 +90,7 @@ export default function ResourcePoolClaimDetailPage() {
     if (!namespace || !name) return;
     setQuotaLoaded(false);
     consoleFetchJSON(`${CAPSULE.PROXY_BASE}/api/v1/namespaces/${namespace}/resourcequotas/${name}`)
-      .then((data: ResourceQuota) => {
+      .then((data: V1ResourceQuota) => {
         setQuota(data);
         setQuotaLoaded(true);
       })

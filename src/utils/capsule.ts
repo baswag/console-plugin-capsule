@@ -1,3 +1,6 @@
+import type { V1ObjectMetaString } from "./k8s-types";
+
+
 export const CAPSULE = {
   PROXY_BASE: '/api/proxy/plugin/console-plugin-capsule/capsule',
   API_BASE: 'capsule.clastix.io',
@@ -24,10 +27,7 @@ export interface TenantOwner {
 }
 
 export interface Tenant {
-  metadata: {
-    name: string;
-    creationTimestamp: string;
-  };
+  metadata: V1ObjectMetaString
   spec: {
     owners?: TenantOwner[];
   };
@@ -45,11 +45,7 @@ export interface TenantFilters {
 export type ResourceQuantity = Record<string, string>;
 
 export interface ResourcePool {
-  metadata: {
-    name: string;
-    creationTimestamp: string;
-    labels?: Record<string, string>;
-  };
+  metadata: V1ObjectMetaString
   spec: {
     hard: ResourceQuantity;
     selectors?: Array<{
@@ -66,12 +62,7 @@ export interface ResourcePool {
 }
 
 export interface ResourcePoolClaim {
-  metadata: {
-    name: string;
-    namespace: string;
-    creationTimestamp: string;
-    labels?: Record<string, string>;
-  };
+  metadata: V1ObjectMetaString
   spec: {
     pool: string;
     claim: ResourceQuantity;
@@ -84,6 +75,10 @@ export interface ResourcePoolClaim {
   };
 }
 
+export interface TenantResource {
+  metadata: V1ObjectMetaString
+}
+
 export interface ResourcePoolFilters {
   name: string;
 }
@@ -94,19 +89,4 @@ export function getPoolTenant(pool: ResourcePool): string {
     if (tenant) return tenant;
   }
   return pool.metadata.labels?.['capsule.clastix.io/tenant'] ?? '';
-}
-
-export function parseResourceValue(val: string): number {
-  if (!val) return 0;
-  const s = val.trim();
-  if (s.endsWith('m')) return parseFloat(s) / 1000;
-  if (s.endsWith('Ki')) return parseFloat(s) * 1024;
-  if (s.endsWith('Mi')) return parseFloat(s) * 1024 ** 2;
-  if (s.endsWith('Gi')) return parseFloat(s) * 1024 ** 3;
-  if (s.endsWith('Ti')) return parseFloat(s) * 1024 ** 4;
-  if (s.endsWith('K')) return parseFloat(s) * 1000;
-  if (s.endsWith('M')) return parseFloat(s) * 1000 ** 2;
-  if (s.endsWith('G')) return parseFloat(s) * 1000 ** 3;
-  if (s.endsWith('T')) return parseFloat(s) * 1000 ** 4;
-  return parseFloat(s) || 0;
 }

@@ -19,7 +19,7 @@
     "type": "console.navigation/href",
     "properties": {
       "id": "capsule-tenants",
-      "name": "%plugin__console-plugin-capsule~Capsule Tenants%",
+      "name": "%plugin__console-plugin-capsule~Tenants%",
       "href": "/capsule-tenants",
       "perspective": "admin",
       "section": "capsule"

@@ -34,18 +34,10 @@ import {
 } from '@patternfly/react-data-view';
 import { DataViewFilters } from '@patternfly/react-data-view/dist/esm/DataViewFilters';
 import {CAPSULE, Tenant} from '../utils/capsule'
+import type { V1NamespaceString } from '../utils/k8s-types';
+
 
 const TENANTS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.TENANTS.API_VERSION}/${CAPSULE.TENANTS.API_KIND}`;
-
-interface Namespace {
-  metadata: {
-    name: string;
-    creationTimestamp: string;
-  };
-  status?: {
-    phase?: string;
-  };
-}
 
 interface NamespaceFilters {
   name: string;
@@ -54,14 +46,14 @@ interface NamespaceFilters {
 const COLUMN_KEYS = ['name', 'status', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
 
-const getSortValue = (ns: Namespace, key: ColumnKey): string => {
+const getSortValue = (ns: V1NamespaceString, key: ColumnKey): string => {
   switch (key) {
     case 'name':
-      return ns.metadata.name;
+      return ns.metadata!.name!;
     case 'status':
       return ns.status?.phase ?? '';
     case 'created':
-      return ns.metadata.creationTimestamp;
+      return ns.metadata!.creationTimestamp;
   }
 };
 
@@ -76,7 +68,7 @@ export default function TenantNamespacesPage() {
   const [tenantSelectOpen, setTenantSelectOpen] = useState(false);
   const [fetchResult, setFetchResult] = useState<{
     fetchedFor: string;
-    namespaces: Namespace[];
+    namespaces: V1NamespaceString[];
     loadError: string | null;
   }>({ fetchedFor: '', namespaces: [], loadError: null });
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -115,7 +107,7 @@ export default function TenantNamespacesPage() {
     if (!fetchKey) return;
     const url = `${CAPSULE.PROXY_BASE}/api/v1/namespaces?labelSelector=${encodeURIComponent(`capsule.clastix.io/tenant=${selectedTenant}`)}`;
     consoleFetchJSON(url)
-      .then((data: { items: Namespace[] }) => {
+      .then((data: { items: V1NamespaceString[] }) => {
         setFetchResult({ fetchedFor: fetchKey, namespaces: data.items ?? [], loadError: null });
       })
       .catch((e: Error) => {
