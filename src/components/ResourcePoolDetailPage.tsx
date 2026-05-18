@@ -6,7 +6,6 @@ import {
   ListPageHeader,
   Timestamp,
   consoleFetchJSON,
-  useAccessReview,
 } from '@openshift-console/dynamic-plugin-sdk';
 import {
   ActionGroup,
@@ -66,18 +65,6 @@ export default function ResourcePoolDetailPage() {
   const [claimsError, setClaimsError] = useState<string | null>(null);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
-
-  const [canCreateClaim] = useAccessReview({
-    group: CAPSULE.API_BASE,
-    resource: CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND,
-    verb: 'create',
-  });
-
-  const [canDeleteClaim] = useAccessReview({
-    group: CAPSULE.API_BASE,
-    resource: CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND,
-    verb: 'delete',
-  });
 
   const [claimToDelete, setClaimToDelete] = useState<ResourcePoolClaim | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -161,11 +148,9 @@ export default function ResourcePoolDetailPage() {
     <>
       <DocumentTitle>{t('Resource Pool: {{name}}', { name })}</DocumentTitle>
       <ListPageHeader title={`${t('Resource Pool')}: ${name}`}>
-        {canCreateClaim && (
-          <Button variant="primary" onClick={() => setClaimModalOpen(true)}>
-            {t('Create Claim')}
-          </Button>
-        )}
+        <Button variant="primary" onClick={() => setClaimModalOpen(true)}>
+          {t('Create Claim')}
+        </Button>
       </ListPageHeader>
 
       <PageSection>
@@ -221,13 +206,13 @@ export default function ResourcePoolDetailPage() {
                 <Th>{t('Requested')}</Th>
                 <Th>{t('Status')}</Th>
                 <Th>{t('Created')}</Th>
-                {canDeleteClaim && <Th aria-label={t('Actions')} />}
+                <Th aria-label={t('Actions')} />
               </Tr>
             </Thead>
             <Tbody>
               {claims.length === 0 ? (
                 <Tr>
-                  <Td colSpan={canDeleteClaim ? 6 : 5}>{t('No claims for this pool.')}</Td>
+                  <Td colSpan={6}>{t('No claims for this pool.')}</Td>
                 </Tr>
               ) : (
                 claims.map((claim) => (
@@ -247,20 +232,18 @@ export default function ResourcePoolDetailPage() {
                     <Td>
                       <Timestamp timestamp={claim.metadata.creationTimestamp} />
                     </Td>
-                    {canDeleteClaim && (
-                      <Td isActionCell>
-                        <Button
-                          variant="plain"
-                          aria-label={t('Delete {{name}}', { name: claim.metadata.name })}
-                          onClick={() => {
-                            setDeleteError(null);
-                            setClaimToDelete(claim);
-                          }}
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </Td>
-                    )}
+                    <Td isActionCell>
+                      <Button
+                        variant="plain"
+                        aria-label={t('Delete {{name}}', { name: claim.metadata.name })}
+                        onClick={() => {
+                          setDeleteError(null);
+                          setClaimToDelete(claim);
+                        }}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </Td>
                   </Tr>
                 ))
               )}
