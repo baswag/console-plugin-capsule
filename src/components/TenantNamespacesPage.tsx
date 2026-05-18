@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, MouseEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import {
-  DocumentTitle,
   ListPageHeader,
   ResourceLink,
   Timestamp,
   consoleFetchJSON,
 } from '@openshift-console/dynamic-plugin-sdk';
+import DocumentTitle from '../utils/DocumentTitle';
 import {
   Button,
   MenuToggle,

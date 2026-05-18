@@ -1,8 +1,14 @@
 ---
+capsule:
+  proxy:
+    serviceName: capsule-proxy
+    serviceNamespace: capsule-system
+    servicePort: 9001
+
 plugin:
-  name: ""
-  description: ""
-  image: ""
+  name: "console-plugin-capsule"
+  description: "An OpenShift Console Plugin for Capsule"
+  image: "ghcr.io/baswag/console-plugin-capsule:0.0.2"
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
   replicas: 2

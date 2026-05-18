@@ -15,3 +15,12 @@ spec:
       namespace: {{ .Release.Namespace }}
       port: {{ .Values.plugin.port }}
       basePath: {{ .Values.plugin.basePath }}
+  proxy:
+    - alias: capsule
+      authorization: UserToken
+      endpoint:
+        type: Service
+        service:
+          name: {{ .Values.capsule.proxy.serviceName | quote }}
+          namespace: {{ .Values.capsule.proxy.serviceNamespace | quote }}
+          port: {{ .Values.capsule.proxy.servicePort }}
