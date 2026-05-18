@@ -1,0 +1,193 @@
+import { RefObject, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import {
+  DocumentTitle,
+  ListPageHeader,
+  Timestamp,
+  consoleFetchJSON,
+  useAccessReview,
+} from '@openshift-console/dynamic-plugin-sdk';
+import {
+  Alert,
+  Button,
+  MenuToggle,
+  PageSection,
+  Select,
+  SelectList,
+  SelectOption,
+  Spinner,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+} from '@patternfly/react-core';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { CAPSULE, TenantResource } from '../utils/capsule';
+import type { V1NamespaceString } from '../utils/k8s-types';
+
+const { API_BASE, PROXY_BASE, TENANT_RESOURCES: TR } = CAPSULE;
+
+const ALL_NS = '';
+
+function apiUrl(namespace: string): string {
+  if (!namespace) {
+    return `${PROXY_BASE}/apis/${API_BASE}/${TR.API_VERSION}/${TR.API_KIND}`;
+  }
+  return `${PROXY_BASE}/apis/${API_BASE}/${TR.API_VERSION}/namespaces/${namespace}/${TR.API_KIND}`;
+}
+
+function detailUrl(namespace: string, name: string): string {
+  return `/k8s/ns/${namespace}/${API_BASE}~${TR.API_VERSION}~${TR.API_KIND_SINGLE}/${name}`;
+}
+
+function createUrl(namespace: string): string {
+  if (!namespace) {
+    return `/k8s/all-namespaces/${API_BASE}~${TR.API_VERSION}~${TR.API_KIND_SINGLE}/~new`;
+  }
+  return `/k8s/ns/${namespace}/${API_BASE}~${TR.API_VERSION}~${TR.API_KIND_SINGLE}/~new`;
+}
+
+export default function TenantResourcePage() {
+  const { t } = useTranslation('plugin__console-plugin-capsule');
+  const navigate = useNavigate();
+
+  const [selectedNamespace, setSelectedNamespace] = useState(ALL_NS);
+  const [nsSelectOpen, setNsSelectOpen] = useState(false);
+  const [namespaces, setNamespaces] = useState<string[]>([]);
+
+  const [items, setItems] = useState<TenantResource[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [canCreate] = useAccessReview({
+    group: API_BASE,
+    resource: TR.API_KIND,
+    namespace: selectedNamespace,
+    verb: 'create',
+  });
+
+  useEffect(() => {
+    consoleFetchJSON(`${PROXY_BASE}/api/v1/namespaces`)
+      .then((data: { items: V1NamespaceString[] }) => {
+        setNamespaces((data.items ?? []).map((ns) => ns.metadata.name));
+      })
+      .catch(() => setNamespaces([]));
+  }, []);
+
+  useEffect(() => {
+    setLoaded(false);
+    setError(null);
+    consoleFetchJSON(apiUrl(selectedNamespace))
+      .then((data: { items: TenantResource[] }) => {
+        setItems(data.items ?? []);
+        setLoaded(true);
+      })
+      .catch((e: Error) => {
+        setError(e.message ?? t('Failed to fetch TenantResources'));
+        setLoaded(true);
+      });
+  }, [selectedNamespace, t]);
+
+  const nsToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={() => setNsSelectOpen((o) => !o)}
+      isExpanded={nsSelectOpen}
+    >
+      {selectedNamespace || t('All Namespaces')}
+    </MenuToggle>
+  );
+
+  return (
+    <>
+      <DocumentTitle>{t('Tenant Resources')}</DocumentTitle>
+      <ListPageHeader title={t('Tenant Resources')}>
+        {canCreate && (
+          <Button variant="primary" onClick={() => navigate(createUrl(selectedNamespace))}>
+            {t('Create TenantResource')}
+          </Button>
+        )}
+      </ListPageHeader>
+
+      <PageSection>
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <Select
+                isOpen={nsSelectOpen}
+                selected={selectedNamespace || t('All Namespaces')}
+                onSelect={(_e, val) => {
+                  setSelectedNamespace(val === t('All Namespaces') ? ALL_NS : String(val));
+                  setNsSelectOpen(false);
+                }}
+                onOpenChange={setNsSelectOpen}
+                toggle={nsToggle}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  <SelectOption value={t('All Namespaces')} isSelected={!selectedNamespace}>
+                    {t('All Namespaces')}
+                  </SelectOption>
+                  {namespaces.map((ns) => (
+                    <SelectOption key={ns} value={ns} isSelected={ns === selectedNamespace}>
+                      {ns}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+
+        {!loaded && <Spinner aria-label={t('Loading TenantResources')} />}
+        {error && (
+          <Alert variant="danger" title={t('Error loading TenantResources')} isInline>
+            {error}
+          </Alert>
+        )}
+        {loaded && !error && (
+          <Table aria-label={t('TenantResources')} variant="compact">
+            <Thead>
+              <Tr>
+                <Th>{t('Name')}</Th>
+                <Th>{t('Namespace')}</Th>
+                <Th>{t('Resources')}</Th>
+                <Th>{t('Processed items')}</Th>
+                <Th>{t('Created')}</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {items.length === 0 ? (
+                <Tr>
+                  <Td colSpan={5}>{t('No TenantResources found.')}</Td>
+                </Tr>
+              ) : (
+                items.map((item) => (
+                  <Tr key={`${item.metadata.namespace}/${item.metadata.name}`}>
+                    <Td>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() =>
+                          navigate(detailUrl(item.metadata.namespace ?? '', item.metadata.name))
+                        }
+                      >
+                        {item.metadata.name}
+                      </Button>
+                    </Td>
+                    <Td>{item.metadata.namespace}</Td>
+                    <Td>{item.spec.resources?.length ?? 0}</Td>
+                    <Td>{item.status?.processedItems?.length ?? 0}</Td>
+                    <Td>
+                      <Timestamp timestamp={item.metadata.creationTimestamp} />
+                    </Td>
+                  </Tr>
+                ))
+              )}
+            </Tbody>
+          </Table>
+        )}
+      </PageSection>
+    </>
+  );
+}

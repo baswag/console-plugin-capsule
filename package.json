@@ -96,7 +96,8 @@
       "TenantNamespacesPage": "./components/TenantNamespacesPage",
       "ResourcePoolsPage": "./components/ResourcePoolsPage",
       "ResourcePoolDetailPage": "./components/ResourcePoolDetailPage",
-      "ResourcePoolClaimDetailPage": "./components/ResourcePoolClaimDetailPage"
+      "ResourcePoolClaimDetailPage": "./components/ResourcePoolClaimDetailPage",
+      "TenantResourcePage": "./components/TenantResourcePage"
     },
     "dependencies": {
       "@console/pluginAPI": "^4.21.0"

@@ -76,5 +76,23 @@
       "perspective": "admin",
       "section": "capsule"
     }
+  },
+  {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-tenant-resources",
+      "component": { "$codeRef": "TenantResourcePage" }
+    }
+  },
+  {
+    "type": "console.navigation/href",
+    "properties": {
+      "id": "capsule-tenant-resources",
+      "name": "%plugin__console-plugin-capsule~Tenant Resources%",
+      "href": "/capsule-tenant-resources",
+      "perspective": "admin",
+      "section": "capsule"
+    }
   }
 ]

@@ -19,6 +19,11 @@ export const CAPSULE = {
     API_KIND_SINGLE: 'ResourcePoolClaim',
     API_VERSION: 'v1beta2',
   },
+  TENANT_RESOURCES: {
+    API_KIND: 'tenantresources',
+    API_KIND_SINGLE: 'TenantResource',
+    API_VERSION: 'v1beta2',
+  },
 };
 
 export interface TenantOwner {
@@ -76,7 +81,47 @@ export interface ResourcePoolClaim {
 }
 
 export interface TenantResource {
-  metadata: V1ObjectMetaString
+  metadata: V1ObjectMetaString;
+  spec: {
+    resyncPeriod: string
+    pruningOnDelete?: boolean
+    resources?: {
+      additionalMetadata?: {
+        annotations?: Record<string,string>
+        labels?: Record<string,string>
+      }
+      namespaceSelector?: {
+        matchExpressions?: {
+          key: string
+          operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist',
+          values?: string[]
+        }[]
+        matchLabels?: Record<string,string>
+      }
+      namespacedItems?: {
+        kind: string
+        namespace: string
+        selector: {
+          matchExpressions?: {
+          key: string
+          operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist',
+          values?: string[]
+          }[]
+          matchLabels?: Record<string,string>
+        },
+        apiVersion?: string
+      }
+      rawItems?: Object[]
+    }[]
+  },
+  status: {
+    processedItems: {
+      kind: string,
+      name: string,
+      namespace: string,
+      apiVersion?: string
+    }[]
+  }
 }
 
 export interface ResourcePoolFilters {

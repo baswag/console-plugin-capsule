@@ -31,6 +31,7 @@ import type {V1ResourceQuota} from '@kubernetes/client-node'
 import { UsageGauge } from '../utils/common';
 
 const CLAIMS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}`;
+// const CLAIMS_URL = `/api/kubernetes/api/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}`
 
 export default function ResourcePoolClaimDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
