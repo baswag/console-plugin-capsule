@@ -32,7 +32,6 @@ import {
   useDataViewPagination,
   useDataViewSort,
 } from '@patternfly/react-data-view';
-import { DataViewFilters } from '@patternfly/react-data-view/dist/esm/DataViewFilters';
 import {
   CAPSULE,
   ResourcePool,
@@ -270,19 +269,14 @@ export default function ResourcePoolsPage() {
                   </SelectList>
                 </Select>
               </ToolbarItem>
-              <DataViewFilters<ResourcePoolFilters>
-                onChange={(_key: string, newValues: Partial<ResourcePoolFilters>) =>
-                  onSetFilters(newValues)
-                }
-                values={filters}
-              >
+              
                 <DataViewTextFilter
                   filterId="name"
                   title={t('Name')}
                   value={filters.name}
                   onChange={(_e, val) => onSetFilters({ name: val })}
                 />
-              </DataViewFilters>
+              
             </>
           }
           pagination={

@@ -34,10 +34,10 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
 
   const strokeColor =
     pct > 90
-      ? 'var(--pf-t--global--color--status--danger--default)'
+      ? 'var(--pf-v5-global--danger-color--100)'
       : pct > 70
-        ? 'var(--pf-t--global--color--status--warning--default)'
-        : 'var(--pf-t--global--color--status--info--default)';
+        ? 'var(--pf-v5-global--warning-color--100)'
+        : 'var(--pf-v5-global--info-color--100)';
 
   return (
     <div className="console-plugin-capsule__gauge">
@@ -50,7 +50,7 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
             r={r}
             style={{
               fill: 'none',
-              stroke: 'var(--pf-t--global--border--color--default)',
+              stroke: 'var(--pf-v5-global--BorderColor--100)',
               strokeWidth: `${strokeWidth}`,
             }}
           />

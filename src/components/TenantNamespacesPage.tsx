@@ -32,7 +32,6 @@ import {
   useDataViewPagination,
   useDataViewSort,
 } from '@patternfly/react-data-view';
-import { DataViewFilters } from '@patternfly/react-data-view/dist/esm/DataViewFilters';
 import {CAPSULE, Tenant} from '../utils/capsule'
 import type { V1NamespaceString } from '../utils/k8s-types';
 
@@ -239,19 +238,14 @@ export default function TenantNamespacesPage() {
                   </SelectList>
                 </Select>
               </ToolbarItem>
-              <DataViewFilters<NamespaceFilters>
-                onChange={(_key: string, newValues: Partial<NamespaceFilters>) =>
-                  onSetFilters(newValues)
-                }
-                values={filters}
-              >
+              
                 <DataViewTextFilter
                   filterId="name"
                   title={t('Name')}
                   value={filters.name}
                   onChange={(_e, val) => onSetFilters({ name: val })}
                 />
-              </DataViewFilters>
+              
             </>
           }
           actions={

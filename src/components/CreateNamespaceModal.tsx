@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { consoleFetchJSON } from '@openshift-console/dynamic-plugin-sdk';
 import {
-  ActionGroup,
   Alert,
   Button,
   Form,
@@ -11,9 +10,6 @@ import {
   HelperText,
   HelperTextItem,
   Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   TextInput,
 } from '@patternfly/react-core';
 import {CAPSULE} from '../utils/capsule'
@@ -69,61 +65,60 @@ export default function CreateNamespaceModal({
   };
 
   return (
-    <Modal isOpen onClose={onClose} variant="small">
-      <ModalHeader
-        title={t('Create Namespace')}
-        description={t('Namespace will be assigned to tenant: {{tenant}}', { tenant })}
-      />
-      <ModalBody>
-        {error && (
-          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-            {error}
-          </Alert>
-        )}
-        <Form
-          id="create-namespace-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
+    <Modal
+      isOpen
+      onClose={onClose}
+      variant="small"
+      title={t('Create Namespace')}
+      actions={[
+        <Button
+          key="create"
+          variant="primary"
+          onClick={handleSubmit}
+          isDisabled={!isValid || submitting}
+          isLoading={submitting}
         >
-          <FormGroup label={t('Name')} isRequired fieldId="ns-name">
-            <TextInput
-              id="ns-name"
-              value={name}
-              onChange={(_e, val) => setName(val)}
-              validated={showValidation ? 'error' : 'default'}
-              autoFocus
-            />
-            {showValidation && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error">
-                    {t(
-                      'Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.',
-                    )}
-                  </HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </FormGroup>
-        </Form>
-      </ModalBody>
-      <ModalFooter>
-        <ActionGroup>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            isDisabled={!isValid || submitting}
-            isLoading={submitting}
-          >
-            {t('Create')}
-          </Button>
-          <Button variant="link" onClick={onClose} isDisabled={submitting}>
-            {t('Cancel')}
-          </Button>
-        </ActionGroup>
-      </ModalFooter>
+          {t('Create')}
+        </Button>,
+        <Button key="cancel" variant="link" onClick={onClose} isDisabled={submitting}>
+          {t('Cancel')}
+        </Button>,
+      ]}
+    >
+      <p>{t('Namespace will be assigned to tenant: {{tenant}}', { tenant })}</p>
+      {error && (
+        <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+          {error}
+        </Alert>
+      )}
+      <Form
+        id="create-namespace-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <FormGroup label={t('Name')} isRequired fieldId="ns-name">
+          <TextInput
+            id="ns-name"
+            value={name}
+            onChange={(_e, val) => setName(val)}
+            validated={showValidation ? 'error' : 'default'}
+            autoFocus
+          />
+          {showValidation && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">
+                  {t(
+                    'Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.',
+                  )}
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
+        </FormGroup>
+      </Form>
     </Modal>
   );
 }

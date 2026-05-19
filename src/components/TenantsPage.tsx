@@ -22,7 +22,6 @@ import {
   useDataViewPagination,
   useDataViewSort,
 } from '@patternfly/react-data-view';
-import { DataViewFilters } from '@patternfly/react-data-view/dist/esm/DataViewFilters';
 import { useState } from 'react';
 import {CAPSULE, Tenant, TenantFilters} from '../utils/capsule'
 
@@ -168,19 +167,14 @@ export default function TenantsPage() {
       <DataView activeState={activeState}>
         <DataViewToolbar
           filters={
-            <DataViewFilters<TenantFilters>
-              onChange={(_key: string, newValues: Partial<TenantFilters>) =>
-                onSetFilters(newValues)
-              }
-              values={filters}
-            >
+            
               <DataViewTextFilter
                 filterId="name"
                 title={t('Name')}
                 value={filters.name}
                 onChange={(_e, val) => onSetFilters({ name: val })}
               />
-            </DataViewFilters>
+            
           }
           pagination={
             <Pagination

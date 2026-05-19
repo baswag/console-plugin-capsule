@@ -2,16 +2,12 @@ import { useState, useEffect, MouseEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { consoleFetchJSON } from '@openshift-console/dynamic-plugin-sdk';
 import {
-  ActionGroup,
   Alert,
   Button,
   Form,
   FormGroup,
   MenuToggle,
   Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   Select,
   SelectList,
   SelectOption,
@@ -100,70 +96,69 @@ export default function CreateResourcePoolClaimModal({
   );
 
   return (
-    <Modal isOpen onClose={onClose} variant="medium">
-      <ModalHeader
-        title={t('Create ResourcePoolClaim')}
-        description={t('Claim resources from pool: {{poolName}}', { poolName })}
-      />
-      <ModalBody>
-        {error && (
-          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-            {error}
-          </Alert>
-        )}
-        <Form>
-          <FormGroup label={t('Namespace')} isRequired fieldId="claim-namespace">
-            <Select
-              isOpen={nsSelectOpen}
-              selected={selectedNamespace}
-              onSelect={(_: MouseEvent | undefined, val: string | number | undefined) => {
-                setSelectedNamespace(String(val));
-                setNsSelectOpen(false);
-              }}
-              onOpenChange={setNsSelectOpen}
-              toggle={nsToggle}
-              shouldFocusToggleOnSelect
-            >
-              <SelectList>
-                {namespaces.map((ns) => (
-                  <SelectOption key={ns} value={ns} isSelected={ns === selectedNamespace}>
-                    {ns}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
-          </FormGroup>
-          {Object.keys(poolHard ?? {}).map((resource) => (
-            <FormGroup
-              key={resource}
-              label={`${resource} (${t('max')}: ${poolHard[resource]})`}
-              fieldId={`claim-${resource}`}
-            >
-              <TextInput
-                id={`claim-${resource}`}
-                value={resources[resource] ?? ''}
-                placeholder={poolHard[resource]}
-                onChange={(_e, val) => setResources((prev) => ({ ...prev, [resource]: val }))}
-              />
-            </FormGroup>
-          ))}
-        </Form>
-      </ModalBody>
-      <ModalFooter>
-        <ActionGroup>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            isDisabled={!selectedNamespace || submitting}
-            isLoading={submitting}
+    <Modal
+      isOpen
+      onClose={onClose}
+      variant="medium"
+      title={t('Create ResourcePoolClaim')}
+      actions={[
+        <Button
+          key="create"
+          variant="primary"
+          onClick={handleSubmit}
+          isDisabled={!selectedNamespace || submitting}
+          isLoading={submitting}
+        >
+          {t('Create')}
+        </Button>,
+        <Button key="cancel" variant="link" onClick={onClose} isDisabled={submitting}>
+          {t('Cancel')}
+        </Button>,
+      ]}
+    >
+      <p>{t('Claim resources from pool: {{poolName}}', { poolName })}</p>
+      {error && (
+        <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+          {error}
+        </Alert>
+      )}
+      <Form>
+        <FormGroup label={t('Namespace')} isRequired fieldId="claim-namespace">
+          <Select
+            isOpen={nsSelectOpen}
+            selected={selectedNamespace}
+            onSelect={(_: MouseEvent | undefined, val: string | number | undefined) => {
+              setSelectedNamespace(String(val));
+              setNsSelectOpen(false);
+            }}
+            onOpenChange={setNsSelectOpen}
+            toggle={nsToggle}
+            shouldFocusToggleOnSelect
           >
-            {t('Create')}
-          </Button>
-          <Button variant="link" onClick={onClose} isDisabled={submitting}>
-            {t('Cancel')}
-          </Button>
-        </ActionGroup>
-      </ModalFooter>
+            <SelectList>
+              {namespaces.map((ns) => (
+                <SelectOption key={ns} value={ns} isSelected={ns === selectedNamespace}>
+                  {ns}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
+        </FormGroup>
+        {Object.keys(poolHard ?? {}).map((resource) => (
+          <FormGroup
+            key={resource}
+            label={`${resource} (${t('max')}: ${poolHard[resource]})`}
+            fieldId={`claim-${resource}`}
+          >
+            <TextInput
+              id={`claim-${resource}`}
+              value={resources[resource] ?? ''}
+              placeholder={poolHard[resource]}
+              onChange={(_e, val) => setResources((prev) => ({ ...prev, [resource]: val }))}
+            />
+          </FormGroup>
+        ))}
+      </Form>
     </Modal>
   );
 }

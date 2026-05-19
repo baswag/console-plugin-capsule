@@ -8,7 +8,6 @@ import {
 } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import {
-  ActionGroup,
   Alert,
   Button,
   DescriptionList,
@@ -17,9 +16,6 @@ import {
   DescriptionListTerm,
   Label,
   Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   PageSection,
   Spinner,
   Title,
@@ -253,33 +249,34 @@ export default function ResourcePoolDetailPage() {
       </PageSection>
 
       {claimToDelete && (
-        <Modal isOpen onClose={() => setClaimToDelete(null)} variant="small">
-          <ModalHeader title={t('Delete ResourcePoolClaim?')} />
-          <ModalBody>
-            {deleteError && (
-              <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-                {deleteError}
-              </Alert>
-            )}
-            {t('Are you sure you want to delete {{name}}? This cannot be undone.', {
-              name: claimToDelete.metadata.name,
-            })}
-          </ModalBody>
-          <ModalFooter>
-            <ActionGroup>
-              <Button
-                variant="danger"
-                onClick={handleDeleteClaim}
-                isDisabled={deleting}
-                isLoading={deleting}
-              >
-                {t('Delete')}
-              </Button>
-              <Button variant="link" onClick={() => setClaimToDelete(null)} isDisabled={deleting}>
-                {t('Cancel')}
-              </Button>
-            </ActionGroup>
-          </ModalFooter>
+        <Modal
+          isOpen
+          onClose={() => setClaimToDelete(null)}
+          variant="small"
+          title={t('Delete ResourcePoolClaim?')}
+          actions={[
+            <Button
+              key="delete"
+              variant="danger"
+              onClick={handleDeleteClaim}
+              isDisabled={deleting}
+              isLoading={deleting}
+            >
+              {t('Delete')}
+            </Button>,
+            <Button key="cancel" variant="link" onClick={() => setClaimToDelete(null)} isDisabled={deleting}>
+              {t('Cancel')}
+            </Button>,
+          ]}
+        >
+          {deleteError && (
+            <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+              {deleteError}
+            </Alert>
+          )}
+          {t('Are you sure you want to delete {{name}}? This cannot be undone.', {
+            name: claimToDelete.metadata.name,
+          })}
         </Modal>
       )}
 

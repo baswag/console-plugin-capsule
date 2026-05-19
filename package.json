@@ -28,10 +28,10 @@
     "@kubernetes/client-node": "^1.4.0",
     "@openshift-console/dynamic-plugin-sdk": "4.18-latest",
     "@openshift-console/dynamic-plugin-sdk-webpack": "4.18-latest",
-    "@patternfly/react-core": "^6.4.3",
-    "@patternfly/react-data-view": "^6.4.0",
-    "@patternfly/react-icons": "^6.4.0",
-    "@patternfly/react-table": "^6.4.3",
+    "@patternfly/react-core": "^5.4.14",
+    "@patternfly/react-data-view": "^5.8.1",
+    "@patternfly/react-icons": "^5.2.1",
+    "@patternfly/react-table": "^5.4.14",
     "@playwright/browser-chromium": "^1.59.1",
     "@playwright/test": "^1.59.1",
     "@swc/core": "^1.15.33",
@@ -99,7 +99,7 @@
       "TenantResourcePage": "./components/TenantResourcePage"
     },
     "dependencies": {
-      "@console/pluginAPI": "^4.21.0"
+      "@console/pluginAPI": "^4.18.0"
     },
     "proxy": {
       "alias": "capsule",
