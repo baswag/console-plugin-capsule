@@ -8,7 +8,7 @@ capsule:
 plugin:
   name: "console-plugin-capsule"
   description: "An OpenShift Console Plugin for Capsule"
-  image: "ghcr.io/baswag/console-plugin-capsule:0.0.2"
+  image: "ghcr.io/baswag/console-plugin-capsule:0.0.3"
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
   replicas: 2

@@ -42,7 +42,7 @@ plugin name in the `consolePlugin` declaration of [package.json](package.json).
 ```json
 "consolePlugin": {
   "name": "console-plugin-capsule",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "displayName": "My Plugin",
   "description": "Enjoy this shiny, new console plugin!",
   "exposedModules": {
