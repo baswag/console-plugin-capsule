@@ -44,7 +44,7 @@ import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
 const TENANTS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.TENANTS.API_VERSION}/${CAPSULE.TENANTS.API_KIND}`;
 const POOLS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOLS.API_VERSION}/${CAPSULE.RESOURCE_POOLS.API_KIND}`;
 
-const COLUMN_KEYS = ['name', 'tenant', 'hard', 'used', 'created'] as const;
+const COLUMN_KEYS = ['name', 'tenant', 'used', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
 
 const getSortValue = (pool: ResourcePool, key: ColumnKey): string => {
@@ -145,7 +145,7 @@ export default function ResourcePoolsPage() {
 
   const sorted = useMemo(() => {
     const key = sortByKey as ColumnKey;
-    if (!key || key === 'hard' || key === 'used') return filtered;
+    if (!key || key === 'used') return filtered;
     return [...filtered].sort((a, b) => {
       const av = getSortValue(a, key);
       const bv = getSortValue(b, key);
@@ -162,13 +162,12 @@ export default function ResourcePoolsPage() {
   const columnLabels: Record<ColumnKey, string> = {
     name: t('Name'),
     tenant: t('Tenant'),
-    hard: t('Hard Limits'),
     used: t('Used'),
     created: t('Created'),
   };
 
   const columns: DataViewTh[] = COLUMN_KEYS.map((key, idx) =>
-    key === 'hard' || key === 'used'
+     key === 'used'
       ? columnLabels[key]
       : {
           cell: columnLabels[key],
@@ -195,7 +194,6 @@ export default function ResourcePoolsPage() {
         {pool.metadata.name}
       </Button>,
       tenant ? <Label key="tenant" color="blue">{tenant}</Label> : '—',
-      formatQuantity(pool.spec.hard),
       formatQuantity(pool.status?.allocation?.used),
       <Timestamp key="ts" timestamp={pool.metadata.creationTimestamp} />,
       canCreateClaim ? (

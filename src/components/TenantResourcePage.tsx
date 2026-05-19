@@ -22,18 +22,31 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { CAPSULE, TenantResource } from '../utils/capsule';
+import { CAPSULE, Tenant, TenantResource } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 
-const { API_BASE, PROXY_BASE, TENANT_RESOURCES: TR } = CAPSULE;
+const { API_BASE, PROXY_BASE, TENANT_RESOURCES: TR, TENANTS } = CAPSULE;
 
 const ALL_NS = '';
+const ALL_TENANTS = '';
 
-function apiUrl(namespace: string): string {
-  if (!namespace) {
-    return `${PROXY_BASE}/apis/${API_BASE}/${TR.API_VERSION}/${TR.API_KIND}`;
+const TENANTS_URL = `${PROXY_BASE}/apis/${API_BASE}/${TENANTS.API_VERSION}/${TENANTS.API_KIND}`;
+
+function nsUrl(tenant: string): string {
+  if (tenant) {
+    return `${PROXY_BASE}/api/v1/namespaces?labelSelector=${encodeURIComponent(`capsule.clastix.io/tenant=${tenant}`)}`;
   }
-  return `${PROXY_BASE}/apis/${API_BASE}/${TR.API_VERSION}/namespaces/${namespace}/${TR.API_KIND}`;
+  return `${PROXY_BASE}/api/v1/namespaces`;
+}
+
+function apiUrl(namespace: string, tenant: string): string {
+  const labelSelector = tenant
+    ? `?labelSelector=${encodeURIComponent(`capsule.clastix.io/managed-by=${tenant}`)}`
+    : '';
+  if (!namespace) {
+    return `${PROXY_BASE}/apis/${API_BASE}/${TR.API_VERSION}/${TR.API_KIND}${labelSelector}`;
+  }
+  return `${PROXY_BASE}/apis/${API_BASE}/${TR.API_VERSION}/namespaces/${namespace}/${TR.API_KIND}${labelSelector}`;
 }
 
 function detailUrl(namespace: string, name: string): string {
@@ -51,6 +64,10 @@ export default function TenantResourcePage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const navigate = useNavigate();
 
+  const [selectedTenant, setSelectedTenant] = useState(ALL_TENANTS);
+  const [tenantSelectOpen, setTenantSelectOpen] = useState(false);
+  const [tenants, setTenants] = useState<string[]>([]);
+
   const [selectedNamespace, setSelectedNamespace] = useState(ALL_NS);
   const [nsSelectOpen, setNsSelectOpen] = useState(false);
   const [namespaces, setNamespaces] = useState<string[]>([]);
@@ -67,17 +84,26 @@ export default function TenantResourcePage() {
   });
 
   useEffect(() => {
-    consoleFetchJSON(`${PROXY_BASE}/api/v1/namespaces`)
+    consoleFetchJSON(TENANTS_URL)
+      .then((data: { items: Tenant[] }) => {
+        setTenants((data.items ?? []).map((tenant) => tenant.metadata.name));
+      })
+      .catch(() => setTenants([]));
+  }, []);
+
+  useEffect(() => {
+    setSelectedNamespace(ALL_NS);
+    consoleFetchJSON(nsUrl(selectedTenant))
       .then((data: { items: V1NamespaceString[] }) => {
         setNamespaces((data.items ?? []).map((ns) => ns.metadata.name));
       })
       .catch(() => setNamespaces([]));
-  }, []);
+  }, [selectedTenant]);
 
   useEffect(() => {
     setLoaded(false);
     setError(null);
-    consoleFetchJSON(apiUrl(selectedNamespace))
+    consoleFetchJSON(apiUrl(selectedNamespace, selectedTenant))
       .then((data: { items: TenantResource[] }) => {
         setItems(data.items ?? []);
         setLoaded(true);
@@ -86,7 +112,17 @@ export default function TenantResourcePage() {
         setError(e.message ?? t('Failed to fetch TenantResources'));
         setLoaded(true);
       });
-  }, [selectedNamespace, t]);
+  }, [selectedNamespace, selectedTenant, t]);
+
+  const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
+    <MenuToggle
+      ref={toggleRef}
+      onClick={() => setTenantSelectOpen((o) => !o)}
+      isExpanded={tenantSelectOpen}
+    >
+      {selectedTenant || t('All Tenants')}
+    </MenuToggle>
+  );
 
   const nsToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
@@ -112,6 +148,30 @@ export default function TenantResourcePage() {
       <PageSection>
         <Toolbar>
           <ToolbarContent>
+            <ToolbarItem>
+              <Select
+                isOpen={tenantSelectOpen}
+                selected={selectedTenant || t('All Tenants')}
+                onSelect={(_e, val) => {
+                  setSelectedTenant(val === t('All Tenants') ? ALL_TENANTS : String(val));
+                  setTenantSelectOpen(false);
+                }}
+                onOpenChange={setTenantSelectOpen}
+                toggle={tenantToggle}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  <SelectOption value={t('All Tenants')} isSelected={!selectedTenant}>
+                    {t('All Tenants')}
+                  </SelectOption>
+                  {tenants.map((tenant) => (
+                    <SelectOption key={tenant} value={tenant} isSelected={tenant === selectedTenant}>
+                      {tenant}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </ToolbarItem>
             <ToolbarItem>
               <Select
                 isOpen={nsSelectOpen}
