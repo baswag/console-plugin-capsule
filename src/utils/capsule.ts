@@ -128,6 +128,10 @@ export interface ResourcePoolFilters {
   name: string;
 }
 
+export interface TenantResourceFilters {
+  name: string;
+}
+
 export function getPoolTenant(pool: ResourcePool): string {
   for (const sel of pool.spec.selectors ?? []) {
     const tenant = sel.matchLabels?.['capsule.clastix.io/tenant'];

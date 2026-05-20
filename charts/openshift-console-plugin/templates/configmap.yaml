@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "openshift-console-plugin.labels" . | nindent 4 }}
 data:
-  nginx.conf: |
+  custom.conf: |
     server {
       listen              {{ .Values.plugin.port }} ssl;
       listen              [::]:{{ .Values.plugin.port }} ssl;
