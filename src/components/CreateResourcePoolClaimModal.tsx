@@ -1,6 +1,5 @@
 import { useState, useEffect, MouseEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { consoleFetchJSON } from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
   Button,
@@ -13,7 +12,8 @@ import {
   SelectOption,
   TextInput,
 } from '@patternfly/react-core';
-import { CAPSULE, ResourceQuantity } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
+import { V1NamespaceString } from '../utils/k8s-types';
 
 interface CreateResourcePoolClaimModalProps {
   poolName: string;
@@ -38,6 +38,15 @@ export default function CreateResourcePoolClaimModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const namespacesApi = new CapsuleClient<V1NamespaceString>({
+    apiGroup: '',
+    apiVersion: 'v1',
+    apiKind: 'namespaces',
+    apiKindSingle: 'Namespace',
+  });
+
+  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(CAPSULE_APIS.RESOURCE_POOL_CLAIMS);
+
   useEffect(() => {
     const initial: ResourceQuantity = {};
     for (const key of Object.keys(poolHard ?? {})) {
@@ -48,9 +57,13 @@ export default function CreateResourcePoolClaimModal({
 
   useEffect(() => {
     if (!tenantName) return;
-    const url = `${CAPSULE.PROXY_BASE}/api/v1/namespaces?labelSelector=${encodeURIComponent(`capsule.clastix.io/tenant=${tenantName}`)}`;
-    consoleFetchJSON(url)
-      .then((data: { items: Array<{ metadata: { name: string } }> }) => {
+    namespacesApi
+      .fetch({
+        labelSelector: {
+          'capsule.clastix.io/tenant': tenantName,
+        },
+      })
+      .then((data) => {
         const names = (data.items ?? []).map((ns) => ns.metadata.name);
         setNamespaces(names);
         if (names.length > 0) setSelectedNamespace(names[0]);
@@ -69,15 +82,17 @@ export default function CreateResourcePoolClaimModal({
     }
 
     const claimName = `${poolName}-${selectedNamespace}`;
-    const url = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}/namespaces/${selectedNamespace}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND}`;
 
-    consoleFetchJSON
-      .post(url, {
-        apiVersion: `${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}`,
-        kind: CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND_SINGLE,
-        metadata: { name: claimName, namespace: selectedNamespace },
-        spec: { pool: poolName , claim: hard },
-      })
+    resourcePoolClaimsApi
+      .fetch(
+        { namespace: selectedNamespace, method: 'POST' },
+        {
+          apiVersion: `${CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiGroup}/${CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiVersion}`,
+          kind: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiKindSingle,
+          metadata: { name: claimName, namespace: selectedNamespace },
+          spec: { pool: poolName, claim: hard },
+        },
+      )
       .then(() => onCreated())
       .catch((e: Error) => {
         setError(e.message ?? t('Failed to create ResourcePoolClaim'));

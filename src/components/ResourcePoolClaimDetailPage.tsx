@@ -5,7 +5,6 @@ import {
   ListPageHeader,
   ResourceLink,
   Timestamp,
-  consoleFetchJSON,
   useAccessReview,
 } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
@@ -21,18 +20,24 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { CAPSULE, ResourcePoolClaim } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient, ResourcePoolClaim } from '../utils/capsule';
 import './ResourcePoolDetailPage.css';
-import type {V1ResourceQuota} from '@kubernetes/client-node'
+import type { V1ResourceQuota } from '@kubernetes/client-node';
 import { UsageGauge } from '../utils/common';
-
-const CLAIMS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}`;
-// const CLAIMS_URL = `/api/kubernetes/api/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}`
 
 export default function ResourcePoolClaimDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
   const navigate = useNavigate();
+
+  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(CAPSULE_APIS.RESOURCE_POOL_CLAIMS);
+
+  const resourceQuotasApi = new CapsuleClient<V1ResourceQuota>({
+    apiGroup: '',
+    apiVersion: 'v1',
+    apiKind: 'resourcequotas',
+    apiKindSingle: 'ResourceQuota',
+  });
 
   const [claim, setClaim] = useState<ResourcePoolClaim | null>(null);
   const [quota, setQuota] = useState<V1ResourceQuota | null>(null);
@@ -44,8 +49,8 @@ export default function ResourcePoolClaimDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [canDeleteClaim] = useAccessReview({
-    group: CAPSULE.API_BASE,
-    resource: CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND,
+    group: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiGroup,
+    resource: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiKind,
     namespace: namespace ?? '',
     verb: 'delete',
   });
@@ -54,10 +59,9 @@ export default function ResourcePoolClaimDetailPage() {
     if (!namespace || !name) return;
     setDeleting(true);
     setDeleteError(null);
-    consoleFetchJSON
-      .delete(
-        `${CLAIMS_URL}/namespaces/${namespace}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND}/${name}`,
-      )
+
+    resourcePoolClaimsApi
+      .fetch({ name, namespace, method: 'DELETE' })
       .then(() => {
         navigate(-1);
       })
@@ -70,10 +74,9 @@ export default function ResourcePoolClaimDetailPage() {
   useEffect(() => {
     if (!namespace || !name) return;
     setClaimLoaded(false);
-    consoleFetchJSON(
-      `${CLAIMS_URL}/namespaces/${namespace}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND}/${name}`,
-    )
-      .then((data: ResourcePoolClaim) => {
+    resourcePoolClaimsApi
+      .fetch({ name, namespace })
+      .then((data) => {
         setClaim(data);
         setClaimLoaded(true);
       })
@@ -86,7 +89,8 @@ export default function ResourcePoolClaimDetailPage() {
   useEffect(() => {
     if (!namespace || !name) return;
     setQuotaLoaded(false);
-    consoleFetchJSON(`${CAPSULE.PROXY_BASE}/api/v1/namespaces/${namespace}/resourcequotas/${name}`)
+    resourceQuotasApi
+      .fetch({ name, namespace })
       .then((data: V1ResourceQuota) => {
         setQuota(data);
         setQuotaLoaded(true);

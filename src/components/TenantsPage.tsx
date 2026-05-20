@@ -1,31 +1,19 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import {
-  ListPageHeader,
-  Timestamp,
-  consoleFetchJSON,
-  useAccessReview,
-} from '@openshift-console/dynamic-plugin-sdk';
+import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import { Button, Pagination, Spinner } from '@patternfly/react-core';
-import { ISortBy, OnSort } from '@patternfly/react-table';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
-  DataViewTh,
   DataViewToolbar,
   DataViewTr,
-  useDataViewFilters,
-  useDataViewPagination,
-  useDataViewSort,
 } from '@patternfly/react-data-view';
-import { useState } from 'react';
-import {CAPSULE, Tenant, TenantFilters} from '../utils/capsule'
-
-const TENANTS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.TENANTS.API_VERSION}/${CAPSULE.TENANTS.API_KIND}`;
+import { CAPSULE_APIS, CapsuleClient, Tenant } from '../utils/capsule';
+import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
@@ -48,11 +36,14 @@ const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
 
 export default function TenantsPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
+
+  const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
+
   const navigate = useNavigate();
 
   const [canCreate] = useAccessReview({
-    group: CAPSULE.API_BASE,
-    resource: CAPSULE.TENANTS.API_KIND,
+    group: CAPSULE_APIS.TENANTS.apiGroup,
+    resource: CAPSULE_APIS.TENANTS.apiKind,
     verb: 'create',
   });
 
@@ -61,8 +52,9 @@ export default function TenantsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    consoleFetchJSON(TENANTS_URL)
-      .then((data: { items: Tenant[] }) => {
+    tenantApi
+      .fetch()
+      .then((data) => {
         setTenants(data.items ?? []);
         setLoaded(true);
       })
@@ -72,50 +64,9 @@ export default function TenantsPage() {
       });
   }, [t]);
 
-  const { filters, onSetFilters } = useDataViewFilters<TenantFilters>({
-    initialFilters: { name: '' },
-  });
-
-  const {
-    onSort: dvOnSort,
-    sortBy: sortByKey,
-    direction,
-  } = useDataViewSort({
-    initialSort: { sortBy: 'name', direction: 'asc' },
-  });
-
-  const { page, perPage, onSetPage, onPerPageSelect } = useDataViewPagination({ perPage: 20 });
-
-  const filtered = useMemo(
-    () =>
-      filters.name
-        ? tenants.filter((t) => t.metadata.name.toLowerCase().includes(filters.name.toLowerCase()))
-        : tenants,
-    [tenants, filters.name],
-  );
-
-  const sortIdx = COLUMN_KEYS.indexOf(sortByKey as ColumnKey);
-  const pfSortBy: ISortBy = { index: sortIdx >= 0 ? sortIdx : 0, direction };
-
-  const pfOnSort: OnSort = (_event, colIdx, sortDir) => {
-    dvOnSort(undefined, COLUMN_KEYS[colIdx], sortDir);
-  };
-
-  const sorted = useMemo(() => {
-    const key = sortByKey as ColumnKey;
-    if (!key || UNSORTABLE.includes(key)) return filtered;
-    return [...filtered].sort((a, b) => {
-      const av = getSortValue(a, key);
-      const bv = getSortValue(b, key);
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return direction === 'desc' ? -cmp : cmp;
-    });
-  }, [filtered, sortByKey, direction]);
-
-  const paginated = useMemo(
-    () => sorted.slice((page - 1) * perPage, page * perPage),
-    [sorted, page, perPage],
-  );
+  const { filtered, filters, onSetFilters } = useNameFilter(tenants);
+  const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
+    useSortedPaginated(filtered, COLUMN_KEYS, getSortValue, UNSORTABLE);
 
   const columnLabels: Record<ColumnKey, string> = {
     name: t('Name'),
@@ -125,14 +76,7 @@ export default function TenantsPage() {
     created: t('Created'),
   };
 
-  const columns: DataViewTh[] = COLUMN_KEYS.map((key, idx) =>
-    UNSORTABLE.includes(key)
-      ? columnLabels[key]
-      : {
-          cell: columnLabels[key],
-          props: { sort: { sortBy: pfSortBy, onSort: pfOnSort, columnIndex: idx } },
-        },
-  );
+  const columns = buildColumns(columnLabels);
 
   const rows: DataViewTr[] = paginated.map((tenant) => [
     <Button
@@ -156,10 +100,7 @@ export default function TenantsPage() {
       <DocumentTitle>{t('Capsule Tenants')}</DocumentTitle>
       <ListPageHeader title={t('Capsule Tenants')}>
         {canCreate && (
-          <Button
-            variant="primary"
-            onClick={() => navigate(`/k8s/cluster/${CAPSULE.API_BASE}~${CAPSULE.TENANTS.API_VERSION}~${CAPSULE.TENANTS.API_KIND_SINGLE}/~new`)}
-          >
+          <Button variant="primary" onClick={() => navigate(tenantApi.getCreateUrl())}>
             {t('Create Tenant')}
           </Button>
         )}
@@ -167,14 +108,12 @@ export default function TenantsPage() {
       <DataView activeState={activeState}>
         <DataViewToolbar
           filters={
-            
-              <DataViewTextFilter
-                filterId="name"
-                title={t('Name')}
-                value={filters.name}
-                onChange={(_e, val) => onSetFilters({ name: val })}
-              />
-            
+            <DataViewTextFilter
+              filterId="name"
+              title={t('Name')}
+              value={filters.name}
+              onChange={(_e, val) => onSetFilters({ name: val })}
+            />
           }
           pagination={
             <Pagination

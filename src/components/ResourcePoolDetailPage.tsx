@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import {
-  ListPageHeader,
-  Timestamp,
-  consoleFetchJSON,
-} from '@openshift-console/dynamic-plugin-sdk';
+import { ListPageHeader, Timestamp } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import {
   Alert,
@@ -23,23 +19,15 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { TrashIcon } from '@patternfly/react-icons';
 import {
-  CAPSULE,
+  CAPSULE_APIS,
+  CapsuleClient,
   ResourcePool,
   ResourcePoolClaim,
   ResourceQuantity,
-  getPoolTenant,
 } from '../utils/capsule';
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
 import './ResourcePoolDetailPage.css';
 import { UsageGauge } from '../utils/common';
-
-const POOLS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOLS.API_VERSION}/${CAPSULE.RESOURCE_POOLS.API_KIND}`;
-const CLAIMS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND}`;
-
-function resourcePoolClaimDetailUrl(claim: ResourcePoolClaim): string {
-  const { namespace, name } = claim.metadata;
-  return `/capsule-resource-pool-claims/${namespace}/${name}`;
-}
 
 function formatQuantity(q: ResourceQuantity | undefined): string {
   if (!q) return '—';
@@ -52,6 +40,10 @@ export default function ResourcePoolDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const { name } = useParams<{ name: string }>();
   const navigate = useNavigate();
+
+  const resourcePoolsApi = new CapsuleClient<ResourcePool>(CAPSULE_APIS.RESOURCE_POOLS);
+
+  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(CAPSULE_APIS.RESOURCE_POOL_CLAIMS);
 
   const [pool, setPool] = useState<ResourcePool | null>(null);
   const [claims, setClaims] = useState<ResourcePoolClaim[]>([]);
@@ -71,10 +63,8 @@ export default function ResourcePoolDetailPage() {
     const { namespace, name: claimName } = claimToDelete.metadata;
     setDeleting(true);
     setDeleteError(null);
-    consoleFetchJSON
-      .delete(
-        `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_VERSION}/namespaces/${namespace}/${CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND}/${claimName}`,
-      )
+    resourcePoolClaimsApi
+      .fetch({ name: claimName, namespace, method: 'DELETE' })
       .then(() => {
         setClaimToDelete(null);
         setDeleting(false);
@@ -89,7 +79,8 @@ export default function ResourcePoolDetailPage() {
   useEffect(() => {
     if (!name) return;
     setPoolLoaded(false);
-    consoleFetchJSON(`${POOLS_URL}/${name}`)
+    resourcePoolsApi
+      .fetch({ name })
       .then((data: ResourcePool) => {
         setPool(data);
         setPoolLoaded(true);
@@ -103,11 +94,10 @@ export default function ResourcePoolDetailPage() {
   useEffect(() => {
     if (!name) return;
     setClaimsLoaded(false);
-    consoleFetchJSON(CLAIMS_URL)
-      .then((data: { items: ResourcePoolClaim[] }) => {
-        const filtered = (data.items ?? []).filter(
-          (c) => c.spec.pool === name,
-        );
+    resourcePoolClaimsApi
+      .fetch()
+      .then((data) => {
+        const filtered = (data.items ?? []).filter((c) => c.spec.pool === name);
         setClaims(filtered);
         setClaimsLoaded(true);
       })
@@ -117,7 +107,7 @@ export default function ResourcePoolDetailPage() {
       });
   }, [name, t, refreshToken]);
 
-  const tenant = pool ? getPoolTenant(pool) : '';
+  const tenant = pool ? (pool.metadata.labels?.['capsule.clastix.io/tenant'] ?? '') : '';
   const hard = pool?.status?.allocation?.hard ?? pool?.spec.hard ?? {};
   const used = pool?.status?.allocation?.used ?? {};
   const available = pool?.status?.allocation?.available;
@@ -163,9 +153,7 @@ export default function ResourcePoolDetailPage() {
               hard={hard[resource]}
             />
           ))}
-          {Object.keys(hard).length === 0 && (
-            <span>{t('No resource limits defined.')}</span>
-          )}
+          {Object.keys(hard).length === 0 && <span>{t('No resource limits defined.')}</span>}
         </div>
 
         <DescriptionList className="console-plugin-capsule__detail-meta" isHorizontal>
@@ -217,7 +205,11 @@ export default function ResourcePoolDetailPage() {
                       <Button
                         variant="link"
                         isInline
-                        onClick={() => navigate(resourcePoolClaimDetailUrl(claim))}
+                        onClick={() =>
+                          navigate(
+                            `/capsule-resource-pool-claims/${claim.metadata.namespace}/${claim.metadata.name}`,
+                          )
+                        }
                       >
                         {claim.metadata.name}
                       </Button>
@@ -264,7 +256,12 @@ export default function ResourcePoolDetailPage() {
             >
               {t('Delete')}
             </Button>,
-            <Button key="cancel" variant="link" onClick={() => setClaimToDelete(null)} isDisabled={deleting}>
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setClaimToDelete(null)}
+              isDisabled={deleting}
+            >
               {t('Cancel')}
             </Button>,
           ]}

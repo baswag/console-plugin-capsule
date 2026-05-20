@@ -1,28 +1,131 @@
-import type { V1ObjectMetaString } from "./k8s-types";
+import { consoleFetchJSON } from '@openshift-console/dynamic-plugin-sdk';
+import type { V1ObjectMetaString } from './k8s-types';
 
+interface FetchOptions {
+  labelSelector?: Record<string, string>;
+  namespace?: string;
+  name?: string;
+  method?: 'POST' | 'GET' | 'DELETE';
+}
 
-export const CAPSULE = {
-  PROXY_BASE: '/api/proxy/plugin/console-plugin-capsule/capsule',
-  API_BASE: 'capsule.clastix.io',
+export class CapsuleClient<T> {
+  private proxyBase= '/api/proxy/plugin/console-plugin-capsule/capsule'
+  constructor(
+    private resource: {
+      apiGroup: string;
+      apiVersion: string;
+      apiKind: string;
+      apiKindSingle: string;
+    },
+  ) {}
+
+  private get proxyUrl(): string {
+    if (this.resource.apiGroup && this.resource.apiGroup !== '') {
+      return [
+        this.proxyBase,
+        'apis',
+        this.resource.apiGroup,
+        this.resource.apiVersion,
+        this.resource.apiKind,
+      ].join('/');
+    }
+    return [this.proxyBase, 'api', this.resource.apiVersion, this.resource.apiKind].join('/');
+  }
+
+  private getNamespacedProxyUrl(namespace: string): string {
+    if (this.resource.apiGroup && this.resource.apiGroup !== '') {
+      return [
+        this.proxyBase,
+        'apis',
+        this.resource.apiGroup,
+        this.resource.apiVersion,
+        'namespaces',
+        namespace,
+        this.resource.apiKind,
+      ].join('/');
+    }
+    return [
+      this.proxyBase,
+      'api',
+      this.resource.apiVersion,
+      'namespaces',
+      namespace,
+      this.resource.apiKind,
+    ].join('/');
+  }
+
+  async fetch(options: { name: string } & FetchOptions, json?: any): Promise<T>;
+  async fetch(options?: FetchOptions, json?: any): Promise<{ items: T[] }>;
+  async fetch(options?: FetchOptions, json?: any) {
+    let url = this.proxyUrl;
+
+    if (options?.namespace) {
+      url = this.getNamespacedProxyUrl(options.namespace);
+    }
+
+    if (options?.name) {
+      url = `${url}/${options.name}`;
+    }
+
+    if (options?.labelSelector) {
+      let labelSelectorStrings: string[] = [];
+      for (const selector of Object.keys(options.labelSelector)) {
+        labelSelectorStrings.push(`${selector}=${options.labelSelector[selector]}`);
+      }
+      const query = new URLSearchParams({
+        labelSelector: labelSelectorStrings.join(','),
+      }).toString();
+      url = `${url}/?${query}`;
+    }
+
+    if (options?.method === 'POST') {
+      return consoleFetchJSON.post(url, json);
+    }
+    return consoleFetchJSON(url, options?.method);
+  }
+
+  getDetailUrl(name: string, namespace?: string) {
+    if (namespace) {
+      return `/k8s/ns/${namespace}/${this.resource.apiGroup}~${this.resource.apiVersion}~${this.resource.apiKindSingle}/${name}`;
+    }
+    return `/k8s/cluster/${this.resource.apiGroup}~${this.resource.apiVersion}~${this.resource.apiKindSingle}/${name}`;
+  }
+
+  getCreateUrl(namespace?: string) {
+    if (namespace) {
+      return `/k8s/ns/${namespace}/${this.resource.apiGroup}~${this.resource.apiVersion}~${this.resource.apiKindSingle}/~new`;
+    }
+
+    return `/k8s/cluster/${this.resource.apiGroup}~${this.resource.apiVersion}~${this.resource.apiKindSingle}/~new`;
+  }
+}
+
+const CAPSULE_API_GROUP = 'capsule.clastix.io';
+
+export const CAPSULE_APIS = {
   TENANTS: {
-    API_KIND: 'tenants',
-    API_KIND_SINGLE: 'Tenant',
-    API_VERSION: 'v1beta2',
+    apiGroup: CAPSULE_API_GROUP,
+    apiKind: 'tenants',
+    apiKindSingle: 'Tenant',
+    apiVersion: 'v1beta2',
   },
   RESOURCE_POOLS: {
-    API_KIND: 'resourcepools',
-    API_KIND_SINGLE: 'ResourcePool',
-    API_VERSION: 'v1beta2',
+    apiGroup: CAPSULE_API_GROUP,
+    apiKind: 'resourcepools',
+    apiKindSingle: 'ResourcePool',
+    apiVersion: 'v1beta2',
   },
   RESOURCE_POOL_CLAIMS: {
-    API_KIND: 'resourcepoolclaims',
-    API_KIND_SINGLE: 'ResourcePoolClaim',
-    API_VERSION: 'v1beta2',
+    apiGroup: CAPSULE_API_GROUP,
+    apiKind: 'resourcepoolclaims',
+    apiKindSingle: 'ResourcePoolClaim',
+    apiVersion: 'v1beta2',
   },
   TENANT_RESOURCES: {
-    API_KIND: 'tenantresources',
-    API_KIND_SINGLE: 'TenantResource',
-    API_VERSION: 'v1beta2',
+    apiGroup: CAPSULE_API_GROUP,
+    apiKind: 'tenantresources',
+    apiKindSingle: 'TenantResource',
+    apiVersion: 'v1beta2',
   },
 };
 
@@ -32,7 +135,7 @@ export interface TenantOwner {
 }
 
 export interface Tenant {
-  metadata: V1ObjectMetaString
+  metadata: V1ObjectMetaString;
   spec: {
     owners?: TenantOwner[];
   };
@@ -43,14 +146,10 @@ export interface Tenant {
   };
 }
 
-export interface TenantFilters {
-  name: string;
-}
-
 export type ResourceQuantity = Record<string, string>;
 
 export interface ResourcePool {
-  metadata: V1ObjectMetaString
+  metadata: V1ObjectMetaString;
   spec: {
     hard: ResourceQuantity;
     selectors?: Array<{
@@ -67,7 +166,7 @@ export interface ResourcePool {
 }
 
 export interface ResourcePoolClaim {
-  metadata: V1ObjectMetaString
+  metadata: V1ObjectMetaString;
   spec: {
     pool: string;
     claim: ResourceQuantity;
@@ -75,67 +174,51 @@ export interface ResourcePoolClaim {
   status?: {
     hard?: ResourceQuantity;
     condition: {
-      message: string
-    }
+      message: string;
+    };
   };
 }
 
 export interface TenantResource {
   metadata: V1ObjectMetaString;
   spec: {
-    resyncPeriod: string
-    pruningOnDelete?: boolean
+    resyncPeriod: string;
+    pruningOnDelete?: boolean;
     resources?: {
       additionalMetadata?: {
-        annotations?: Record<string,string>
-        labels?: Record<string,string>
-      }
+        annotations?: Record<string, string>;
+        labels?: Record<string, string>;
+      };
       namespaceSelector?: {
         matchExpressions?: {
-          key: string
-          operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist',
-          values?: string[]
-        }[]
-        matchLabels?: Record<string,string>
-      }
+          key: string;
+          operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist';
+          values?: string[];
+        }[];
+        matchLabels?: Record<string, string>;
+      };
       namespacedItems?: {
-        kind: string
-        namespace: string
+        kind: string;
+        namespace: string;
         selector: {
           matchExpressions?: {
-          key: string
-          operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist',
-          values?: string[]
-          }[]
-          matchLabels?: Record<string,string>
-        },
-        apiVersion?: string
-      }
-      rawItems?: Object[]
-    }[]
-  },
+            key: string;
+            operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist';
+            values?: string[];
+          }[];
+          matchLabels?: Record<string, string>;
+        };
+        apiVersion?: string;
+      };
+      rawItems?: Object[];
+    }[];
+  };
   status: {
     processedItems: {
-      kind: string,
-      name: string,
-      namespace: string,
-      apiVersion?: string
-    }[]
-  }
-}
-
-export interface ResourcePoolFilters {
-  name: string;
-}
-
-export interface TenantResourceFilters {
-  name: string;
-}
-
-export function getPoolTenant(pool: ResourcePool): string {
-  for (const sel of pool.spec.selectors ?? []) {
-    const tenant = sel.matchLabels?.['capsule.clastix.io/tenant'];
-    if (tenant) return tenant;
-  }
-  return pool.metadata.labels?.['capsule.clastix.io/tenant'] ?? '';
+      kind: string;
+      name: string;
+      namespace: string;
+      apiVersion?: string;
+    }[];
+  };
 }

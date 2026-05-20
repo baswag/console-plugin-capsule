@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useState, MouseEvent, RefObject } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom-v5-compat';
+import { useEffect, useState, RefObject } from 'react';
+import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import {
-  ListPageHeader,
-  Timestamp,
-  consoleFetchJSON,
-  useAccessReview,
-} from '@openshift-console/dynamic-plugin-sdk';
+import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import {
   Button,
@@ -19,40 +14,28 @@ import {
   Spinner,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { ISortBy, OnSort } from '@patternfly/react-table';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
-  DataViewTh,
   DataViewToolbar,
   DataViewTr,
-  useDataViewFilters,
-  useDataViewPagination,
-  useDataViewSort,
 } from '@patternfly/react-data-view';
-import {
-  CAPSULE,
-  ResourcePool,
-  ResourcePoolFilters,
-  Tenant,
-  getPoolTenant,
-} from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient, ResourcePool, Tenant } from '../utils/capsule';
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
-
-const TENANTS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.TENANTS.API_VERSION}/${CAPSULE.TENANTS.API_KIND}`;
-const POOLS_URL = `${CAPSULE.PROXY_BASE}/apis/${CAPSULE.API_BASE}/${CAPSULE.RESOURCE_POOLS.API_VERSION}/${CAPSULE.RESOURCE_POOLS.API_KIND}`;
+import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
 const COLUMN_KEYS = ['name', 'tenant', 'used', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
+const UNSORTABLE: ColumnKey[] = ['used'];
 
 const getSortValue = (pool: ResourcePool, key: ColumnKey): string => {
   switch (key) {
     case 'name':
       return pool.metadata.name;
     case 'tenant':
-      return getPoolTenant(pool);
+      return pool.metadata.labels?.['capsule.clastix.io/tenant'] ?? '';
     case 'created':
       return pool.metadata.creationTimestamp;
     default:
@@ -63,10 +46,12 @@ const getSortValue = (pool: ResourcePool, key: ColumnKey): string => {
 export default function ResourcePoolsPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const selectedTenant = new URLSearchParams(location.search).get('tenant') ?? '';
+  const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
 
+  const resourcePoolsApi = new CapsuleClient<ResourcePool>(CAPSULE_APIS.RESOURCE_POOLS);
+
+  const [selectedTenant, setSelectedTenant] = useState('');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantSelectOpen, setTenantSelectOpen] = useState(false);
   const [pools, setPools] = useState<ResourcePool[]>([]);
@@ -75,25 +60,31 @@ export default function ResourcePoolsPage() {
   const [claimModalPool, setClaimModalPool] = useState<ResourcePool | null>(null);
 
   const [canCreatePool] = useAccessReview({
-    group: CAPSULE.API_BASE,
-    resource: CAPSULE.RESOURCE_POOLS.API_KIND,
+    group: CAPSULE_APIS.RESOURCE_POOLS.apiGroup,
+    resource: CAPSULE_APIS.RESOURCE_POOLS.apiKind,
     verb: 'create',
   });
   const [canCreateClaim] = useAccessReview({
-    group: CAPSULE.API_BASE,
-    resource: CAPSULE.RESOURCE_POOL_CLAIMS.API_KIND,
+    group: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiGroup,
+    resource: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiKind,
     verb: 'create',
   });
 
   useEffect(() => {
-    consoleFetchJSON(TENANTS_URL)
-      .then((data: { items: Tenant[] }) => setTenants(data.items ?? []))
+    tenantApi
+      .fetch()
+      .then((data) => setTenants(data.items ?? []))
       .catch(() => setTenants([]));
   }, []);
 
   useEffect(() => {
-    consoleFetchJSON(POOLS_URL)
-      .then((data: { items: ResourcePool[] }) => {
+    resourcePoolsApi
+      .fetch(
+        selectedTenant
+          ? { labelSelector: { 'capsule.clastix.io/tenant': selectedTenant } }
+          : undefined,
+      )
+      .then((data) => {
         setPools(data.items ?? []);
         setLoaded(true);
       })
@@ -101,63 +92,11 @@ export default function ResourcePoolsPage() {
         setLoadError(e.message ?? t('Failed to fetch resource pools'));
         setLoaded(true);
       });
-  }, [t]);
+  }, [selectedTenant, t]);
 
-  const onTenantSelect = (_: MouseEvent | undefined, value: string | number | undefined) => {
-    const name = String(value);
-    setTenantSelectOpen(false);
-    navigate(`${location.pathname}?tenant=${name}`);
-  };
-
-  const visiblePools = useMemo(
-    () =>
-      selectedTenant ? pools.filter((p) => getPoolTenant(p) === selectedTenant) : pools,
-    [pools, selectedTenant],
-  );
-
-  const { filters, onSetFilters } = useDataViewFilters<ResourcePoolFilters>({
-    initialFilters: { name: '' },
-  });
-
-  const {
-    onSort: dvOnSort,
-    sortBy: sortByKey,
-    direction,
-  } = useDataViewSort({ initialSort: { sortBy: 'name', direction: 'asc' } });
-
-  const { page, perPage, onSetPage, onPerPageSelect } = useDataViewPagination({ perPage: 20 });
-
-  const filtered = useMemo(
-    () =>
-      filters.name
-        ? visiblePools.filter((p) =>
-            p.metadata.name.toLowerCase().includes(filters.name.toLowerCase()),
-          )
-        : visiblePools,
-    [visiblePools, filters.name],
-  );
-
-  const sortIdx = COLUMN_KEYS.indexOf(sortByKey as ColumnKey);
-  const pfSortBy: ISortBy = { index: sortIdx >= 0 ? sortIdx : 0, direction };
-  const pfOnSort: OnSort = (_event, colIdx, sortDir) => {
-    dvOnSort(undefined, COLUMN_KEYS[colIdx], sortDir);
-  };
-
-  const sorted = useMemo(() => {
-    const key = sortByKey as ColumnKey;
-    if (!key || key === 'used') return filtered;
-    return [...filtered].sort((a, b) => {
-      const av = getSortValue(a, key);
-      const bv = getSortValue(b, key);
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return direction === 'desc' ? -cmp : cmp;
-    });
-  }, [filtered, sortByKey, direction]);
-
-  const paginated = useMemo(
-    () => sorted.slice((page - 1) * perPage, page * perPage),
-    [sorted, page, perPage],
-  );
+  const { filtered, filters, onSetFilters } = useNameFilter(pools);
+  const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
+    useSortedPaginated(filtered, COLUMN_KEYS, getSortValue, UNSORTABLE);
 
   const columnLabels: Record<ColumnKey, string> = {
     name: t('Name'),
@@ -166,14 +105,7 @@ export default function ResourcePoolsPage() {
     created: t('Created'),
   };
 
-  const columns: DataViewTh[] = COLUMN_KEYS.map((key, idx) =>
-     key === 'used'
-      ? columnLabels[key]
-      : {
-          cell: columnLabels[key],
-          props: { sort: { sortBy: pfSortBy, onSort: pfOnSort, columnIndex: idx } },
-        },
-  );
+  const columns = buildColumns(columnLabels);
 
   const formatQuantity = (q: Record<string, string> | undefined) => {
     if (!q) return '—';
@@ -183,7 +115,7 @@ export default function ResourcePoolsPage() {
   };
 
   const rows: DataViewTr[] = paginated.map((pool) => {
-    const tenant = getPoolTenant(pool);
+    const tenant = pool.metadata.labels?.['capsule.clastix.io/tenant'] ?? '';
     return [
       <Button
         key="name"
@@ -193,16 +125,17 @@ export default function ResourcePoolsPage() {
       >
         {pool.metadata.name}
       </Button>,
-      tenant ? <Label key="tenant" color="blue">{tenant}</Label> : '—',
+      tenant ? (
+        <Label key="tenant" color="blue">
+          {tenant}
+        </Label>
+      ) : (
+        '—'
+      ),
       formatQuantity(pool.status?.allocation?.used),
       <Timestamp key="ts" timestamp={pool.metadata.creationTimestamp} />,
       canCreateClaim ? (
-        <Button
-          key="claim"
-          variant="secondary"
-          size="sm"
-          onClick={() => setClaimModalPool(pool)}
-        >
+        <Button key="claim" variant="secondary" size="sm" onClick={() => setClaimModalPool(pool)}>
           {t('Create Claim')}
         </Button>
       ) : null,
@@ -226,14 +159,7 @@ export default function ResourcePoolsPage() {
       <DocumentTitle>{t('Resource Pools')}</DocumentTitle>
       <ListPageHeader title={t('Resource Pools')}>
         {canCreatePool && (
-          <Button
-            variant="primary"
-            onClick={() =>
-              navigate(
-                `/k8s/cluster/${CAPSULE.API_BASE}~${CAPSULE.RESOURCE_POOLS.API_VERSION}~${CAPSULE.RESOURCE_POOLS.API_KIND_SINGLE}/~new`,
-              )
-            }
-          >
+          <Button variant="primary" onClick={() => navigate(resourcePoolsApi.getCreateUrl())}>
             {t('Create Resource Pool')}
           </Button>
         )}
@@ -246,7 +172,10 @@ export default function ResourcePoolsPage() {
                 <Select
                   isOpen={tenantSelectOpen}
                   selected={selectedTenant}
-                  onSelect={onTenantSelect}
+                  onSelect={(_e, val) => {
+                    setSelectedTenant(val === '' ? '' : String(val));
+                    setTenantSelectOpen(false);
+                  }}
                   onOpenChange={setTenantSelectOpen}
                   toggle={tenantToggle}
                   shouldFocusToggleOnSelect
@@ -267,14 +196,12 @@ export default function ResourcePoolsPage() {
                   </SelectList>
                 </Select>
               </ToolbarItem>
-              
-                <DataViewTextFilter
-                  filterId="name"
-                  title={t('Name')}
-                  value={filters.name}
-                  onChange={(_e, val) => onSetFilters({ name: val })}
-                />
-              
+              <DataViewTextFilter
+                filterId="name"
+                title={t('Name')}
+                value={filters.name}
+                onChange={(_e, val) => onSetFilters({ name: val })}
+              />
             </>
           }
           pagination={
@@ -300,8 +227,13 @@ export default function ResourcePoolsPage() {
       {claimModalPool && (
         <CreateResourcePoolClaimModal
           poolName={claimModalPool.metadata.name}
-          poolHard={claimModalPool.status?.allocation?.available ?? (claimModalPool.status?.allocation?.hard ?? claimModalPool.spec.hard ?? {})}
-          tenantName={getPoolTenant(claimModalPool)}
+          poolHard={
+            claimModalPool.status?.allocation?.available ??
+            claimModalPool.status?.allocation?.hard ??
+            claimModalPool.spec.hard ??
+            {}
+          }
+          tenantName={claimModalPool.metadata.labels?.['capsule.clastix.io/tenant'] ?? ''}
           onClose={() => setClaimModalPool(null)}
           onCreated={() => setClaimModalPool(null)}
         />

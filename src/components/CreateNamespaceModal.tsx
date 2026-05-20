@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { consoleFetchJSON } from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
   Button,
@@ -12,9 +11,8 @@ import {
   Modal,
   TextInput,
 } from '@patternfly/react-core';
-import {CAPSULE} from '../utils/capsule'
-
-const NAMESPACES_URL = `${CAPSULE.PROXY_BASE}/api/v1/namespaces`;
+import { CapsuleClient } from '../utils/capsule';
+import { V1NamespaceString } from '../utils/k8s-types';
 
 // Kubernetes namespace name validation: lowercase alphanumeric and hyphens, max 63 chars
 const NS_PATTERN = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/;
@@ -36,6 +34,13 @@ export default function CreateNamespaceModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const namespacesApi = new CapsuleClient<V1NamespaceString>({
+    apiGroup: '',
+    apiVersion: 'v1',
+    apiKind: 'namespaces',
+    apiKindSingle: 'Namespace',
+  });
+
   const isValid = NS_PATTERN.test(name);
   const showValidation = name.length > 0 && !isValid;
 
@@ -44,17 +49,20 @@ export default function CreateNamespaceModal({
     setSubmitting(true);
     setError(null);
 
-    consoleFetchJSON
-      .post(NAMESPACES_URL, {
-        apiVersion: 'v1',
-        kind: 'Namespace',
-        metadata: {
-          name,
-          labels: {
-            'capsule.clastix.io/tenant': tenant,
+    namespacesApi
+      .fetch(
+        { method: 'POST' },
+        {
+          apiVersion: 'v1',
+          kind: 'Namespace',
+          metadata: {
+            name,
+            labels: {
+              'capsule.clastix.io/tenant': tenant,
+            },
           },
         },
-      })
+      )
       .then(() => {
         onCreated(name);
       })
