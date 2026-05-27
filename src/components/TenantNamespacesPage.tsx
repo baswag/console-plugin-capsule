@@ -4,8 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import { ListPageHeader, ResourceLink, Timestamp } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import {
+  Alert,
   Button,
   MenuToggle,
+  Modal,
   Pagination,
   Select,
   SelectList,
@@ -25,6 +27,7 @@ import {
 import { CAPSULE_APIS, CapsuleClient, Tenant } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
+import { TrashIcon } from '@patternfly/react-icons';
 
 const COLUMN_KEYS = ['name', 'status', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
@@ -39,6 +42,87 @@ const getSortValue = (ns: V1NamespaceString, key: ColumnKey): string => {
       return ns.metadata!.creationTimestamp;
   }
 };
+
+const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
+  apiGroup: '',
+  apiVersion: 'v1',
+  apiKind: 'namespaces',
+  apiKindSingle: 'Namespace',
+});
+
+function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted: () => void }) {
+  const { t } = useTranslation('plugin__console-plugin-capsule');
+  const [canDelete, setCanDelete] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    namespacesApiClient.authCanI({ verb: 'delete', name: ns.metadata?.name }).then(setCanDelete);
+  }, [ns.metadata?.name]);
+
+  const deleteNamespace = () => {
+    setDeleting(true);
+    setDeleteError(null);
+    namespacesApiClient.fetch({ name: ns.metadata!.name!, method: 'DELETE' }).then(() => {
+      setDeleteOpen(false);
+      setDeleting(false);
+      onDeleted();
+    });
+  };
+
+  return (
+    <>
+      {canDelete && (
+        <Button
+          variant="plain"
+          aria-label={t('Delete {{name}}', { name: ns.metadata.name })}
+          onClick={() => {
+            setDeleteOpen(true);
+          }}
+        >
+          <TrashIcon />
+        </Button>
+      )}
+      {deleteOpen && (
+        <Modal
+          isOpen
+          onClose={() => setDeleteOpen(false)}
+          variant="small"
+          title={t('Delete Namespace')}
+          actions={[
+            <Button
+              key="delete"
+              variant="danger"
+              onClick={deleteNamespace}
+              isDisabled={deleting}
+              isLoading={deleting}
+            >
+              {t('Delete')}
+            </Button>,
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setDeleteOpen(false)}
+              isDisabled={deleting}
+            >
+              {t('Cancel')}
+            </Button>,
+          ]}
+        >
+          {deleteError && (
+            <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+              {deleteError}
+            </Alert>
+          )}
+          {t('Are you sure you want to delete namespace {{name}}? This cannot be undone.', {
+            name: ns.metadata.name,
+          })}
+        </Modal>
+      )}
+    </>
+  );
+}
 
 export default function TenantNamespacesPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
@@ -139,13 +223,16 @@ export default function TenantNamespacesPage() {
     />,
     ns.status?.phase ?? '—',
     <Timestamp key="ts" timestamp={ns.metadata.creationTimestamp} />,
+    <NamespaceDeleteTr ns={ns} onDeleted={() => setRefreshToken((n) => n + 1)} />,
   ]);
 
   const activeState = !loaded
     ? DataViewState.loading
     : fetchResult.loadError
       ? DataViewState.error
-      : undefined;
+      : filtered.length === 0
+        ? DataViewState.empty
+        : undefined;
 
   const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
@@ -221,6 +308,7 @@ export default function TenantNamespacesPage() {
           bodyStates={{
             [DataViewState.loading]: <Spinner aria-label={t('Loading namespaces')} />,
             [DataViewState.error]: <>{fetchResult.loadError}</>,
+            [DataViewState.empty]: <>{t('No namespaces found.')}</>,
           }}
         />
       </DataView>

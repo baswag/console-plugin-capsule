@@ -9,7 +9,7 @@ interface FetchOptions {
 }
 
 export class CapsuleClient<T> {
-  private proxyBase= '/api/proxy/plugin/console-plugin-capsule/capsule'
+  private proxyBase = '/api/proxy/plugin/console-plugin-capsule/capsule';
   constructor(
     private resource: {
       apiGroup: string;
@@ -82,6 +82,32 @@ export class CapsuleClient<T> {
       return consoleFetchJSON.post(url, json);
     }
     return consoleFetchJSON(url, options?.method);
+  }
+
+  async authCanI(opts: { verb: string; name?: string; namespace?: string }): Promise<boolean> {
+    const ssarUrl = [
+      this.proxyBase,
+      'apis',
+      'authorization.k8s.io',
+      'v1',
+      'selfsubjectaccessreviews',
+    ].join('/');
+
+    const result = await consoleFetchJSON.post(ssarUrl, {
+      apiVersion: 'authorization.k8s.io/v1',
+      kind: 'SelfSubjectAccessReview',
+      spec: {
+        resourceAttributes: {
+          group: this.resource.apiGroup,
+          name: opts.name,
+          namespace: opts.namespace,
+          resource: this.resource.apiKind,
+          version: this.resource.apiVersion,
+          verb: opts.verb,
+        },
+      },
+    });
+    return result.status.allowed ?? false;
   }
 
   getDetailUrl(name: string, namespace?: string) {
