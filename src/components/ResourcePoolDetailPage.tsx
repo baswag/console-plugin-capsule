@@ -13,10 +13,10 @@ import {
   Label,
   Modal,
   PageSection,
+  Pagination,
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { TrashIcon } from '@patternfly/react-icons';
 import {
   CAPSULE_APIS,
@@ -28,6 +28,15 @@ import {
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
 import './ResourcePoolDetailPage.css';
 import { UsageGauge } from '../utils/common';
+import {
+  DataView,
+  DataViewState,
+  DataViewTable,
+  DataViewTextFilter,
+  DataViewToolbar,
+  DataViewTr,
+} from '@patternfly/react-data-view';
+import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
 function formatQuantity(q: ResourceQuantity | undefined): string {
   if (!q) return '—';
@@ -36,6 +45,23 @@ function formatQuantity(q: ResourceQuantity | undefined): string {
     .join(', ');
 }
 
+const COLUMN_KEYS = ['name', 'namespace', 'requested', 'status', 'created'] as const;
+const UNSORTABLE: ColumnKey[] = ['requested', 'status'];
+type ColumnKey = (typeof COLUMN_KEYS)[number];
+
+const getSortValue = (claim: ResourcePoolClaim, key: ColumnKey): string => {
+  switch (key) {
+    case 'name':
+      return claim.metadata!.name!;
+    case 'created':
+      return claim.metadata!.creationTimestamp;
+    case 'namespace':
+      return claim.metadata!.namespace!;
+    default:
+      return '';
+  }
+};
+
 export default function ResourcePoolDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const { name } = useParams<{ name: string }>();
@@ -43,7 +69,9 @@ export default function ResourcePoolDetailPage() {
 
   const resourcePoolsApi = new CapsuleClient<ResourcePool>(CAPSULE_APIS.RESOURCE_POOLS);
 
-  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(CAPSULE_APIS.RESOURCE_POOL_CLAIMS);
+  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(
+    CAPSULE_APIS.RESOURCE_POOL_CLAIMS,
+  );
 
   const [pool, setPool] = useState<ResourcePool | null>(null);
   const [claims, setClaims] = useState<ResourcePoolClaim[]>([]);
@@ -112,6 +140,18 @@ export default function ResourcePoolDetailPage() {
   const used = pool?.status?.allocation?.used ?? {};
   const available = pool?.status?.allocation?.available;
 
+  const { filtered, filters, onSetFilters } = useNameFilter(claims);
+  const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
+    useSortedPaginated(filtered, COLUMN_KEYS, getSortValue, UNSORTABLE);
+
+  const activeState = !claimsLoaded
+    ? DataViewState.loading
+    : claimsError
+      ? DataViewState.error
+      : filtered.length === 0
+        ? DataViewState.empty
+        : undefined;
+
   if (!poolLoaded) {
     return (
       <PageSection>
@@ -129,6 +169,42 @@ export default function ResourcePoolDetailPage() {
       </PageSection>
     );
   }
+
+  const columnLabels: Record<ColumnKey, string> = {
+    name: t('Name'),
+    namespace: t('Namespace'),
+    requested: t('Requested'),
+    status: t('Status'),
+    created: t('Created'),
+  };
+
+  const columns = buildColumns(columnLabels);
+
+  const rows: DataViewTr[] = paginated.map((claim) => [
+    <Button
+      variant="link"
+      isInline
+      onClick={() =>
+        navigate(`/capsule-resource-pool-claims/${claim.metadata.namespace}/${claim.metadata.name}`)
+      }
+    >
+      {claim.metadata.name}
+    </Button>,
+    claim.metadata.namespace,
+    formatQuantity(claim.spec.claim),
+    claim.status?.condition?.message ?? '—',
+    <Timestamp timestamp={claim.metadata.creationTimestamp} />,
+    <Button
+      variant="plain"
+      aria-label={t('Delete {{name}}', { name: claim.metadata.name })}
+      onClick={() => {
+        setDeleteError(null);
+        setClaimToDelete(claim);
+      }}
+    >
+      <TrashIcon />
+    </Button>,
+  ]);
 
   return (
     <>
@@ -175,69 +251,39 @@ export default function ResourcePoolDetailPage() {
           {t('ResourcePoolClaims')}
         </Title>
 
-        {!claimsLoaded && <Spinner aria-label={t('Loading claims')} />}
-        {claimsError && (
-          <Alert variant="warning" title={t('Could not load claims')} isInline>
-            {claimsError}
-          </Alert>
-        )}
-        {claimsLoaded && !claimsError && (
-          <Table aria-label={t('ResourcePoolClaims')} variant="compact">
-            <Thead>
-              <Tr>
-                <Th>{t('Claim')}</Th>
-                <Th>{t('Namespace')}</Th>
-                <Th>{t('Requested')}</Th>
-                <Th>{t('Status')}</Th>
-                <Th>{t('Created')}</Th>
-                <Th aria-label={t('Actions')} />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {claims.length === 0 ? (
-                <Tr>
-                  <Td colSpan={6}>{t('No claims for this pool.')}</Td>
-                </Tr>
-              ) : (
-                claims.map((claim) => (
-                  <Tr key={`${claim.metadata.namespace}/${claim.metadata.name}`}>
-                    <Td>
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() =>
-                          navigate(
-                            `/capsule-resource-pool-claims/${claim.metadata.namespace}/${claim.metadata.name}`,
-                          )
-                        }
-                      >
-                        {claim.metadata.name}
-                      </Button>
-                    </Td>
-                    <Td>{claim.metadata.namespace}</Td>
-                    <Td>{formatQuantity(claim.spec.claim)}</Td>
-                    <Td>{claim.status?.condition?.message ?? '—'}</Td>
-                    <Td>
-                      <Timestamp timestamp={claim.metadata.creationTimestamp} />
-                    </Td>
-                    <Td isActionCell>
-                      <Button
-                        variant="plain"
-                        aria-label={t('Delete {{name}}', { name: claim.metadata.name })}
-                        onClick={() => {
-                          setDeleteError(null);
-                          setClaimToDelete(claim);
-                        }}
-                      >
-                        <TrashIcon />
-                      </Button>
-                    </Td>
-                  </Tr>
-                ))
-              )}
-            </Tbody>
-          </Table>
-        )}
+        <DataView activeState={activeState}>
+          <DataViewToolbar
+            filters={
+              <>
+                <DataViewTextFilter
+                  filterId="name"
+                  title={t('Name')}
+                  value={filters.name}
+                  onChange={(_e, val) => onSetFilters({ name: val })}
+                ></DataViewTextFilter>
+              </>
+            }
+            pagination={
+              <Pagination
+                itemCount={sorted.length}
+                page={page}
+                perPage={perPage}
+                onSetPage={onSetPage}
+                onPerPageSelect={onPerPageSelect}
+                isCompact
+              ></Pagination>
+            }
+          ></DataViewToolbar>
+          <DataViewTable
+            columns={columns}
+            rows={rows}
+            bodyStates={{
+              [DataViewState.loading]: <Spinner aria-label={t('Loading Resource Pool Claims')} />,
+              [DataViewState.error]: <>{claimsError}</>,
+              [DataViewState.empty]: <>{t('No claims for this pool.')}</>,
+            }}
+          ></DataViewTable>
+        </DataView>
       </PageSection>
 
       {claimToDelete && (

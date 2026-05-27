@@ -30,7 +30,9 @@ export default function ResourcePoolClaimDetailPage() {
   const { namespace, name } = useParams<{ namespace: string; name: string }>();
   const navigate = useNavigate();
 
-  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(CAPSULE_APIS.RESOURCE_POOL_CLAIMS);
+  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(
+    CAPSULE_APIS.RESOURCE_POOL_CLAIMS,
+  );
 
   const resourceQuotasApi = new CapsuleClient<V1ResourceQuota>({
     apiGroup: '',

@@ -142,7 +142,13 @@ export default function ResourcePoolsPage() {
     ].filter(Boolean) as DataViewTr;
   });
 
-  const activeState = !loaded ? DataViewState.loading : loadError ? DataViewState.error : undefined;
+  const activeState = !loaded
+    ? DataViewState.loading
+    : loadError
+      ? DataViewState.error
+      : filtered.length === 0
+        ? DataViewState.empty
+        : undefined;
 
   const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
@@ -221,6 +227,7 @@ export default function ResourcePoolsPage() {
           bodyStates={{
             [DataViewState.loading]: <Spinner aria-label={t('Loading resource pools')} />,
             [DataViewState.error]: <>{loadError}</>,
+            [DataViewState.empty]: <>{t('No resource pools found.')}</>,
           }}
         />
       </DataView>

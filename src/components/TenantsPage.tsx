@@ -93,7 +93,13 @@ export default function TenantsPage() {
     <Timestamp key="ts" timestamp={tenant.metadata.creationTimestamp} />,
   ]);
 
-  const activeState = !loaded ? DataViewState.loading : loadError ? DataViewState.error : undefined;
+  const activeState = !loaded
+    ? DataViewState.loading
+    : loadError
+      ? DataViewState.error
+      : filtered.length === 0
+        ? DataViewState.empty
+        : undefined;
 
   return (
     <>
@@ -132,6 +138,7 @@ export default function TenantsPage() {
           bodyStates={{
             [DataViewState.loading]: <Spinner aria-label={t('Loading tenants')} />,
             [DataViewState.error]: <>{loadError}</>,
+            [DataViewState.empty]: <>{t('No tenants found.')}</>,
           }}
         />
       </DataView>
