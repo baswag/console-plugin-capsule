@@ -2,4 +2,4 @@ apiVersion: v2
 name: console-plugin-capsule
 description: An OpenShift Console Plugin for Capsule
 type: application
-version: 0.0.4
+version: 0.0.6

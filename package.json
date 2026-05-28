@@ -1,6 +1,6 @@
 {
   "name": "console-plugin-capsule",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "OpenShift console plugin for capsule",
   "private": true,
   "license": "Apache-2.0",
@@ -87,7 +87,7 @@
   },
   "consolePlugin": {
     "name": "console-plugin-capsule",
-    "version": "0.0.4",
+    "version": "0.0.6",
     "displayName": "OpenShift Console Plugin Template",
     "description": "Template project for OpenShift Console plugins. Edit package.json to change this message and the plugin name.",
     "exposedModules": {

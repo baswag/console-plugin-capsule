@@ -58,7 +58,9 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    namespacesApiClient.authCanI({ verb: 'delete', name: ns.metadata?.name }).then(setCanDelete);
+    namespacesApiClient
+      .authCanI({ verb: 'delete', name: ns.metadata?.name, namespace: ns.metadata?.name })
+      .then(setCanDelete);
   }, [ns.metadata?.name]);
 
   const deleteNamespace = () => {
