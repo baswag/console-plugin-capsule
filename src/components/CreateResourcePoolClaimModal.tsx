@@ -1,4 +1,5 @@
-import { useState, useEffect, MouseEvent, RefObject } from 'react';
+import type { MouseEvent, RefObject } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -12,8 +13,9 @@ import {
   SelectOption,
   TextInput,
 } from '@patternfly/react-core';
-import { CAPSULE_APIS, CapsuleClient, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
-import { V1NamespaceString } from '../utils/k8s-types';
+import type { ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
+import type { V1NamespaceString } from '../utils/k8s-types';
 
 interface CreateResourcePoolClaimModalProps {
   poolName: string;
@@ -45,7 +47,9 @@ export default function CreateResourcePoolClaimModal({
     apiKindSingle: 'Namespace',
   });
 
-  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(CAPSULE_APIS.RESOURCE_POOL_CLAIMS);
+  const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(
+    CAPSULE_APIS.RESOURCE_POOL_CLAIMS,
+  );
 
   useEffect(() => {
     const initial: ResourceQuantity = {};
@@ -68,7 +72,9 @@ export default function CreateResourcePoolClaimModal({
         setNamespaces(names);
         if (names.length > 0) setSelectedNamespace(names[0]);
       })
-      .catch(() => setNamespaces([]));
+      .catch(() => {
+        setNamespaces([]);
+      });
   }, [tenantName]);
 
   const handleSubmit = () => {
@@ -93,7 +99,9 @@ export default function CreateResourcePoolClaimModal({
           spec: { pool: poolName, claim: hard },
         },
       )
-      .then(() => onCreated())
+      .then(() => {
+        onCreated();
+      })
       .catch((e: Error) => {
         setError(e.message ?? t('Failed to create ResourcePoolClaim'));
         setSubmitting(false);
@@ -103,7 +111,9 @@ export default function CreateResourcePoolClaimModal({
   const nsToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
       ref={toggleRef}
-      onClick={() => setNsSelectOpen((o) => !o)}
+      onClick={() => {
+        setNsSelectOpen((o) => !o);
+      }}
       isExpanded={nsSelectOpen}
     >
       {selectedNamespace || t('Select namespace')}
@@ -169,7 +179,9 @@ export default function CreateResourcePoolClaimModal({
               id={`claim-${resource}`}
               value={resources[resource] ?? ''}
               placeholder={poolHard[resource]}
-              onChange={(_e, val) => setResources((prev) => ({ ...prev, [resource]: val }))}
+              onChange={(_e, val) => {
+                setResources((prev) => ({ ...prev, [resource]: val }));
+              }}
             />
           </FormGroup>
         ))}

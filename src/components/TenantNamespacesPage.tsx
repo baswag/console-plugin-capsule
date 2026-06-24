@@ -1,7 +1,8 @@
-import { useEffect, useState, MouseEvent, RefObject } from 'react';
+import type { MouseEvent, RefObject } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
-import { ListPageHeader, ResourceLink, Timestamp } from '@openshift-console/dynamic-plugin-sdk';
+import { ListPageHeader, Timestamp } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import {
   Alert,
@@ -16,15 +17,16 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import CreateNamespaceModal from './CreateNamespaceModal';
+import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
   DataViewToolbar,
-  DataViewTr,
 } from '@patternfly/react-data-view';
-import { CAPSULE_APIS, CapsuleClient, Tenant } from '../utils/capsule';
+import type { Tenant } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 import { TrashIcon } from '@patternfly/react-icons';
@@ -35,11 +37,11 @@ type ColumnKey = (typeof COLUMN_KEYS)[number];
 const getSortValue = (ns: V1NamespaceString, key: ColumnKey): string => {
   switch (key) {
     case 'name':
-      return ns.metadata!.name!;
+      return ns.metadata.name;
     case 'status':
       return ns.status?.phase ?? '';
     case 'created':
-      return ns.metadata!.creationTimestamp;
+      return ns.metadata.creationTimestamp;
   }
 };
 
@@ -66,7 +68,7 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
   const deleteNamespace = () => {
     setDeleting(true);
     setDeleteError(null);
-    namespacesApiClient.fetch({ name: ns.metadata!.name!, method: 'DELETE' }).then(() => {
+    namespacesApiClient.fetch({ name: ns.metadata.name, method: 'DELETE' }).then(() => {
       setDeleteOpen(false);
       setDeleting(false);
       onDeleted();
@@ -89,7 +91,9 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
       {deleteOpen && (
         <Modal
           isOpen
-          onClose={() => setDeleteOpen(false)}
+          onClose={() => {
+            setDeleteOpen(false);
+          }}
           variant="small"
           title={t('Delete Namespace')}
           actions={[
@@ -105,7 +109,9 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
             <Button
               key="cancel"
               variant="link"
-              onClick={() => setDeleteOpen(false)}
+              onClick={() => {
+                setDeleteOpen(false);
+              }}
               isDisabled={deleting}
             >
               {t('Cancel')}
@@ -159,8 +165,12 @@ export default function TenantNamespacesPage() {
   useEffect(() => {
     tenantApi
       .fetch()
-      .then((data) => setTenants(data.items ?? []))
-      .catch(() => setTenants([]));
+      .then((data) => {
+        setTenants(data.items ?? []);
+      })
+      .catch(() => {
+        setTenants([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -174,9 +184,15 @@ export default function TenantNamespacesPage() {
     if (!pendingNamespace || !loaded) return;
     const found = fetchResult.namespaces.some((ns) => ns.metadata.name === pendingNamespace);
     const timer = found
-      ? setTimeout(() => setPendingNamespace(null), 0)
-      : setTimeout(() => setRefreshToken((n) => n + 1), 1000);
-    return () => clearTimeout(timer);
+      ? setTimeout(() => {
+          setPendingNamespace(null);
+        }, 0)
+      : setTimeout(() => {
+          setRefreshToken((n) => n + 1);
+        }, 1000);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [pendingNamespace, loaded, fetchResult.namespaces]);
 
   useEffect(() => {
@@ -218,14 +234,24 @@ export default function TenantNamespacesPage() {
   const columns = buildColumns(columnLabels);
 
   const rows: DataViewTr[] = paginated.map((ns) => [
-    <ResourceLink
+    <Button
       key="name"
-      groupVersionKind={{ group: 'project.openshift.io', version: 'v1', kind: 'Project' }}
-      name={ns.metadata.name}
-    />,
+      variant="link"
+      isInline
+      onClick={() => {
+        navigate(`/capsule-namespaces/${ns.metadata.name}`);
+      }}
+    >
+      {ns.metadata.name}
+    </Button>,
     ns.status?.phase ?? '—',
     <Timestamp key="ts" timestamp={ns.metadata.creationTimestamp} />,
-    <NamespaceDeleteTr ns={ns} onDeleted={() => setRefreshToken((n) => n + 1)} />,
+    <NamespaceDeleteTr
+      ns={ns}
+      onDeleted={() => {
+        setRefreshToken((n) => n + 1);
+      }}
+    />,
   ]);
 
   const activeState = !loaded
@@ -239,7 +265,9 @@ export default function TenantNamespacesPage() {
   const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
       ref={toggleRef}
-      onClick={() => setTenantSelectOpen((o) => !o)}
+      onClick={() => {
+        setTenantSelectOpen((o) => !o);
+      }}
       isExpanded={tenantSelectOpen}
     >
       {t('Tenant')}: {selectedTenant || t('Select tenant')}
@@ -280,7 +308,9 @@ export default function TenantNamespacesPage() {
                 filterId="name"
                 title={t('Name')}
                 value={filters.name}
-                onChange={(_e, val) => onSetFilters({ name: val })}
+                onChange={(_e, val) => {
+                  onSetFilters({ name: val });
+                }}
               />
             </>
           }
@@ -288,7 +318,9 @@ export default function TenantNamespacesPage() {
             <Button
               variant="primary"
               isDisabled={!selectedTenant}
-              onClick={() => setCreateModalOpen(true)}
+              onClick={() => {
+                setCreateModalOpen(true);
+              }}
             >
               {t('Create Namespace')}
             </Button>
@@ -317,7 +349,9 @@ export default function TenantNamespacesPage() {
       {createModalOpen && (
         <CreateNamespaceModal
           tenant={selectedTenant}
-          onClose={() => setCreateModalOpen(false)}
+          onClose={() => {
+            setCreateModalOpen(false);
+          }}
           onCreated={(name) => {
             setCreateModalOpen(false);
             setPendingNamespace(name);

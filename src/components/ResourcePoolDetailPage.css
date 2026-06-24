@@ -54,6 +54,10 @@
   margin-top: 1rem;
 }
 
+.console-plugin-capsule__kv-row {
+  margin-bottom: var(--pf-v5-global--spacer--sm);
+}
+
 .console-plugin-capsule__claims-section {
   margin-top: 1.5rem;
 }

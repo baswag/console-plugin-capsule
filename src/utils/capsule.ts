@@ -68,7 +68,7 @@ export class CapsuleClient<T> {
     }
 
     if (options?.labelSelector) {
-      let labelSelectorStrings: string[] = [];
+      const labelSelectorStrings: string[] = [];
       for (const selector of Object.keys(options.labelSelector)) {
         labelSelectorStrings.push(`${selector}=${options.labelSelector[selector]}`);
       }
@@ -82,6 +82,18 @@ export class CapsuleClient<T> {
       return consoleFetchJSON.post(url, json);
     }
     return consoleFetchJSON(url, options?.method);
+  }
+
+  async patch(name: string, json: unknown, namespace?: string): Promise<T> {
+    let url = this.proxyUrl;
+    if (namespace) {
+      url = this.getNamespacedProxyUrl(namespace);
+    }
+    url = `${url}/${name}`;
+    return consoleFetchJSON(url, 'PATCH', {
+      headers: { 'Content-Type': 'application/merge-patch+json' },
+      body: JSON.stringify(json),
+    });
   }
 
   async authCanI(opts: { verb: string; name?: string; namespace?: string }): Promise<boolean> {
@@ -178,9 +190,9 @@ export interface ResourcePool {
   metadata: V1ObjectMetaString;
   spec: {
     hard: ResourceQuantity;
-    selectors?: Array<{
+    selectors?: {
       matchLabels?: Record<string, string>;
-    }>;
+    }[];
   };
   status?: {
     allocation?: {
@@ -236,7 +248,7 @@ export interface TenantResource {
         };
         apiVersion?: string;
       };
-      rawItems?: Object[];
+      rawItems?: object[];
     }[];
   };
   status: {

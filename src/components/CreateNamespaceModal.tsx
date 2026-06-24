@@ -12,7 +12,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { CapsuleClient } from '../utils/capsule';
-import { V1NamespaceString } from '../utils/k8s-types';
+import type { V1NamespaceString } from '../utils/k8s-types';
 
 // Kubernetes namespace name validation: lowercase alphanumeric and hyphens, max 63 chars
 const NS_PATTERN = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/;
@@ -20,7 +20,7 @@ const NS_PATTERN = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/;
 interface CreateNamespaceModalProps {
   tenant: string;
   onClose: () => void;
-  // eslint-disable-next-line no-unused-vars
+
   onCreated: (name: string) => void;
 }
 
@@ -110,7 +110,9 @@ export default function CreateNamespaceModal({
           <TextInput
             id="ns-name"
             value={name}
-            onChange={(_e, val) => setName(val)}
+            onChange={(_e, val) => {
+              setName(val);
+            }}
             validated={showValidation ? 'error' : 'default'}
             autoFocus
           />

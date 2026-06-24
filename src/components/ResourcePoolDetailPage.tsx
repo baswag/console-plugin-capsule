@@ -18,23 +18,18 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { TrashIcon } from '@patternfly/react-icons';
-import {
-  CAPSULE_APIS,
-  CapsuleClient,
-  ResourcePool,
-  ResourcePoolClaim,
-  ResourceQuantity,
-} from '../utils/capsule';
+import type { ResourcePool, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
 import './ResourcePoolDetailPage.css';
 import { UsageGauge } from '../utils/common';
+import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
   DataViewToolbar,
-  DataViewTr,
 } from '@patternfly/react-data-view';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
@@ -52,11 +47,11 @@ type ColumnKey = (typeof COLUMN_KEYS)[number];
 const getSortValue = (claim: ResourcePoolClaim, key: ColumnKey): string => {
   switch (key) {
     case 'name':
-      return claim.metadata!.name!;
+      return claim.metadata.name;
     case 'created':
-      return claim.metadata!.creationTimestamp;
+      return claim.metadata.creationTimestamp;
     case 'namespace':
-      return claim.metadata!.namespace!;
+      return claim.metadata.namespace!;
     default:
       return '';
   }
@@ -184,9 +179,11 @@ export default function ResourcePoolDetailPage() {
     <Button
       variant="link"
       isInline
-      onClick={() =>
-        navigate(`/capsule-resource-pool-claims/${claim.metadata.namespace}/${claim.metadata.name}`)
-      }
+      onClick={() => {
+        navigate(
+          `/capsule-resource-pool-claims/${claim.metadata.namespace}/${claim.metadata.name}`,
+        );
+      }}
     >
       {claim.metadata.name}
     </Button>,
@@ -210,7 +207,12 @@ export default function ResourcePoolDetailPage() {
     <>
       <DocumentTitle>{t('Resource Pool: {{name}}', { name })}</DocumentTitle>
       <ListPageHeader title={`${t('Resource Pool')}: ${name}`}>
-        <Button variant="primary" onClick={() => setClaimModalOpen(true)}>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setClaimModalOpen(true);
+          }}
+        >
           {t('Create Claim')}
         </Button>
       </ListPageHeader>
@@ -259,7 +261,9 @@ export default function ResourcePoolDetailPage() {
                   filterId="name"
                   title={t('Name')}
                   value={filters.name}
-                  onChange={(_e, val) => onSetFilters({ name: val })}
+                  onChange={(_e, val) => {
+                    onSetFilters({ name: val });
+                  }}
                 ></DataViewTextFilter>
               </>
             }
@@ -289,7 +293,9 @@ export default function ResourcePoolDetailPage() {
       {claimToDelete && (
         <Modal
           isOpen
-          onClose={() => setClaimToDelete(null)}
+          onClose={() => {
+            setClaimToDelete(null);
+          }}
           variant="small"
           title={t('Delete ResourcePoolClaim?')}
           actions={[
@@ -305,7 +311,9 @@ export default function ResourcePoolDetailPage() {
             <Button
               key="cancel"
               variant="link"
-              onClick={() => setClaimToDelete(null)}
+              onClick={() => {
+                setClaimToDelete(null);
+              }}
               isDisabled={deleting}
             >
               {t('Cancel')}
@@ -328,7 +336,9 @@ export default function ResourcePoolDetailPage() {
           poolName={pool.metadata.name}
           poolHard={available ?? hard}
           tenantName={tenant}
-          onClose={() => setClaimModalOpen(false)}
+          onClose={() => {
+            setClaimModalOpen(false);
+          }}
           onCreated={() => {
             setClaimModalOpen(false);
             setRefreshToken((n) => n + 1);

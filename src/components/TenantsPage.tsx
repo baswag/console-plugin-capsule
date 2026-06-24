@@ -4,15 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import { Button, Pagination, Spinner } from '@patternfly/react-core';
+import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
   DataViewToolbar,
-  DataViewTr,
 } from '@patternfly/react-data-view';
-import { CAPSULE_APIS, CapsuleClient, Tenant } from '../utils/capsule';
+import type { Tenant } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
@@ -83,7 +84,9 @@ export default function TenantsPage() {
       key="name"
       variant="link"
       isInline
-      onClick={() => navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`)}
+      onClick={() => {
+        navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`);
+      }}
     >
       {tenant.metadata.name}
     </Button>,
@@ -106,7 +109,12 @@ export default function TenantsPage() {
       <DocumentTitle>{t('Capsule Tenants')}</DocumentTitle>
       <ListPageHeader title={t('Capsule Tenants')}>
         {canCreate && (
-          <Button variant="primary" onClick={() => navigate(tenantApi.getCreateUrl())}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              navigate(tenantApi.getCreateUrl());
+            }}
+          >
             {t('Create Tenant')}
           </Button>
         )}
@@ -118,7 +126,9 @@ export default function TenantsPage() {
               filterId="name"
               title={t('Name')}
               value={filters.name}
-              onChange={(_e, val) => onSetFilters({ name: val })}
+              onChange={(_e, val) => {
+                onSetFilters({ name: val });
+              }}
             />
           }
           pagination={

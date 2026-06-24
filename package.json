@@ -96,6 +96,7 @@
       "ResourcePoolsPage": "./components/ResourcePoolsPage",
       "ResourcePoolDetailPage": "./components/ResourcePoolDetailPage",
       "ResourcePoolClaimDetailPage": "./components/ResourcePoolClaimDetailPage",
+      "TenantNamespaceDetailPage": "./components/TenantNamespaceDetailPage",
       "TenantResourcePage": "./components/TenantResourcePage"
     },
     "dependencies": {

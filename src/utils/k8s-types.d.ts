@@ -1,4 +1,4 @@
-import { V1ObjectMeta, V1Namespace } from '@kubernetes/client-node';
+import type { V1ObjectMeta, V1Namespace } from '@kubernetes/client-node';
 
 export type V1ObjectMetaString = Omit<
   V1ObjectMeta,

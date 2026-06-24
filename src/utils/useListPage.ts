@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { ISortBy, OnSort } from '@patternfly/react-table';
+import type { ISortBy, OnSort } from '@patternfly/react-table';
+import type { DataViewTh } from '@patternfly/react-data-view';
 import {
-  DataViewTh,
   useDataViewFilters,
   useDataViewPagination,
   useDataViewSort,

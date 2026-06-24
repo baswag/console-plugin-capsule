@@ -1,4 +1,5 @@
-import { useEffect, useState, RefObject } from 'react';
+import type { RefObject } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
@@ -14,15 +15,16 @@ import {
   Spinner,
   ToolbarItem,
 } from '@patternfly/react-core';
+import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
   DataViewToolbar,
-  DataViewTr,
 } from '@patternfly/react-data-view';
-import { CAPSULE_APIS, CapsuleClient, ResourcePool, Tenant } from '../utils/capsule';
+import type { ResourcePool, Tenant } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
@@ -73,8 +75,12 @@ export default function ResourcePoolsPage() {
   useEffect(() => {
     tenantApi
       .fetch()
-      .then((data) => setTenants(data.items ?? []))
-      .catch(() => setTenants([]));
+      .then((data) => {
+        setTenants(data.items ?? []);
+      })
+      .catch(() => {
+        setTenants([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -121,7 +127,9 @@ export default function ResourcePoolsPage() {
         key="name"
         variant="link"
         isInline
-        onClick={() => navigate(`/capsule-resource-pools/${pool.metadata.name}`)}
+        onClick={() => {
+          navigate(`/capsule-resource-pools/${pool.metadata.name}`);
+        }}
       >
         {pool.metadata.name}
       </Button>,
@@ -135,7 +143,14 @@ export default function ResourcePoolsPage() {
       formatQuantity(pool.status?.allocation?.used),
       <Timestamp key="ts" timestamp={pool.metadata.creationTimestamp} />,
       canCreateClaim ? (
-        <Button key="claim" variant="secondary" size="sm" onClick={() => setClaimModalPool(pool)}>
+        <Button
+          key="claim"
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            setClaimModalPool(pool);
+          }}
+        >
           {t('Create Claim')}
         </Button>
       ) : null,
@@ -153,7 +168,9 @@ export default function ResourcePoolsPage() {
   const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
       ref={toggleRef}
-      onClick={() => setTenantSelectOpen((o) => !o)}
+      onClick={() => {
+        setTenantSelectOpen((o) => !o);
+      }}
       isExpanded={tenantSelectOpen}
     >
       {selectedTenant ? `${t('Tenant')}: ${selectedTenant}` : t('All tenants')}
@@ -165,7 +182,12 @@ export default function ResourcePoolsPage() {
       <DocumentTitle>{t('Resource Pools')}</DocumentTitle>
       <ListPageHeader title={t('Resource Pools')}>
         {canCreatePool && (
-          <Button variant="primary" onClick={() => navigate(resourcePoolsApi.getCreateUrl())}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              navigate(resourcePoolsApi.getCreateUrl());
+            }}
+          >
             {t('Create Resource Pool')}
           </Button>
         )}
@@ -206,7 +228,9 @@ export default function ResourcePoolsPage() {
                 filterId="name"
                 title={t('Name')}
                 value={filters.name}
-                onChange={(_e, val) => onSetFilters({ name: val })}
+                onChange={(_e, val) => {
+                  onSetFilters({ name: val });
+                }}
               />
             </>
           }
@@ -241,8 +265,12 @@ export default function ResourcePoolsPage() {
             {}
           }
           tenantName={claimModalPool.metadata.labels?.['capsule.clastix.io/tenant'] ?? ''}
-          onClose={() => setClaimModalPool(null)}
-          onCreated={() => setClaimModalPool(null)}
+          onClose={() => {
+            setClaimModalPool(null);
+          }}
+          onCreated={() => {
+            setClaimModalPool(null);
+          }}
         />
       )}
     </>

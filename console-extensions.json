@@ -34,6 +34,14 @@
     }
   },
   {
+    "type": "console.page/route",
+    "properties": {
+      "exact": true,
+      "path": "/capsule-namespaces/:name",
+      "component": { "$codeRef": "TenantNamespaceDetailPage" }
+    }
+  },
+  {
     "type": "console.navigation/href",
     "properties": {
       "id": "capsule-namespaces",

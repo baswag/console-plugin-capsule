@@ -20,7 +20,8 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { CAPSULE_APIS, CapsuleClient, ResourcePoolClaim } from '../utils/capsule';
+import type { ResourcePoolClaim } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import './ResourcePoolDetailPage.css';
 import type { V1ResourceQuota } from '@kubernetes/client-node';
 import { UsageGauge } from '../utils/common';
@@ -182,7 +183,9 @@ export default function ResourcePoolClaimDetailPage() {
                 key="resourcePoolName"
                 variant="link"
                 isInline
-                onClick={() => navigate(`/capsule-resource-pools/${claim?.spec.pool}`)}
+                onClick={() => {
+                  navigate(`/capsule-resource-pools/${claim?.spec.pool}`);
+                }}
                 disabled={!claim?.spec.pool}
               >
                 {claim?.spec.pool ?? '—'}
@@ -210,7 +213,9 @@ export default function ResourcePoolClaimDetailPage() {
       {deleteModalOpen && (
         <Modal
           isOpen
-          onClose={() => setDeleteModalOpen(false)}
+          onClose={() => {
+            setDeleteModalOpen(false);
+          }}
           variant="small"
           title={t('Delete ResourcePoolClaim?')}
           actions={[
@@ -226,7 +231,9 @@ export default function ResourcePoolClaimDetailPage() {
             <Button
               key="cancel"
               variant="link"
-              onClick={() => setDeleteModalOpen(false)}
+              onClick={() => {
+                setDeleteModalOpen(false);
+              }}
               isDisabled={deleting}
             >
               {t('Cancel')}

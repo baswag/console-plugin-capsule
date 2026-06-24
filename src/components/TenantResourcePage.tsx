@@ -1,4 +1,5 @@
-import { useEffect, useState, RefObject } from 'react';
+import type { RefObject } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
@@ -13,15 +14,16 @@ import {
   Spinner,
   ToolbarItem,
 } from '@patternfly/react-core';
+import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
   DataViewToolbar,
-  DataViewTr,
 } from '@patternfly/react-data-view';
-import { CAPSULE_APIS, CapsuleClient, Tenant, TenantResource } from '../utils/capsule';
+import type { Tenant, TenantResource } from '../utils/capsule';
+import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
@@ -85,7 +87,9 @@ export default function TenantResourcePage() {
       .then((data) => {
         setTenants((data.items ?? []).map((tenant) => tenant.metadata.name));
       })
-      .catch(() => setTenants([]));
+      .catch(() => {
+        setTenants([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -95,7 +99,9 @@ export default function TenantResourcePage() {
       .then((data) => {
         setNamespaces((data.items ?? []).map((ns) => ns.metadata.name));
       })
-      .catch(() => setNamespaces([]));
+      .catch(() => {
+        setNamespaces([]);
+      });
   }, [selectedTenant]);
 
   useEffect(() => {
@@ -135,9 +141,9 @@ export default function TenantResourcePage() {
       key="name"
       variant="link"
       isInline
-      onClick={() =>
-        navigate(tenantResourceApi.getDetailUrl(item.metadata.name, item.metadata.namespace))
-      }
+      onClick={() => {
+        navigate(tenantResourceApi.getDetailUrl(item.metadata.name, item.metadata.namespace));
+      }}
     >
       {item.metadata.name}
     </Button>,
@@ -158,7 +164,9 @@ export default function TenantResourcePage() {
   const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
       ref={toggleRef}
-      onClick={() => setTenantSelectOpen((o) => !o)}
+      onClick={() => {
+        setTenantSelectOpen((o) => !o);
+      }}
       isExpanded={tenantSelectOpen}
     >
       {selectedTenant ? `${t('Tenant')}: ${selectedTenant}` : t('All tenants')}
@@ -168,7 +176,9 @@ export default function TenantResourcePage() {
   const nsToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
       ref={toggleRef}
-      onClick={() => setNsSelectOpen((o) => !o)}
+      onClick={() => {
+        setNsSelectOpen((o) => !o);
+      }}
       isExpanded={nsSelectOpen}
     >
       {selectedNamespace ? `${t('Namespace')}: ${selectedNamespace}` : t('All namespaces')}
@@ -182,7 +192,9 @@ export default function TenantResourcePage() {
         {canCreate && selectedNamespace && (
           <Button
             variant="primary"
-            onClick={() => navigate(tenantResourceApi.getCreateUrl(selectedNamespace))}
+            onClick={() => {
+              navigate(tenantResourceApi.getCreateUrl(selectedNamespace));
+            }}
           >
             {t('Create TenantResource')}
           </Button>
@@ -250,7 +262,9 @@ export default function TenantResourcePage() {
                 filterId="name"
                 title={t('Name')}
                 value={filters.name}
-                onChange={(_e, val) => onSetFilters({ name: val })}
+                onChange={(_e, val) => {
+                  onSetFilters({ name: val });
+                }}
               />
             </>
           }
