@@ -4,7 +4,7 @@
     "properties": {
       "id": "capsule",
       "perspective": "admin",
-      "name": "Capsule"
+      "name": "__CAPSULE_SECTION_NAME__"
     }
   },
   {

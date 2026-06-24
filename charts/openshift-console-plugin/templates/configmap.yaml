@@ -13,4 +13,10 @@ data:
       ssl_certificate     /var/cert/tls.crt;
       ssl_certificate_key /var/cert/tls.key;
       root                /usr/share/nginx/html;
+
+      location = /plugin-manifest.json {
+        sub_filter_types *;
+        sub_filter '__CAPSULE_SECTION_NAME__' '{{ .Values.plugin.sectionName }}';
+        sub_filter_once on;
+      }
     }
