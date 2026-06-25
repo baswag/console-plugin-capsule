@@ -19,6 +19,12 @@ function parseResourceValue(val: string): number {
   return parseFloat(s) || 0;
 }
 
+// Resources with dots (limits.cpu, requests.memory, etc.) are compute resources shown as %.
+// Plain names (pods, services, secrets, etc.) are count resources shown as "X of Y".
+function isCountResource(resource: string): boolean {
+  return !resource.includes('.');
+}
+
 export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
   const usedNum = parseResourceValue(used ?? '0');
   const hardNum = parseResourceValue(hard ?? '0');
@@ -38,6 +44,9 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
       : pct > 70
         ? 'var(--pf-v5-global--warning-color--100)'
         : 'var(--pf-v5-global--info-color--100)';
+
+  const count = isCountResource(resource);
+  const centerLabel = count ? `${used ?? '0'} of ${hard ?? '0'}` : `${pct} %`;
 
   return (
     <div className="console-plugin-capsule__gauge">
@@ -71,13 +80,15 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
           )}
         </svg>
         <div className="console-plugin-capsule__gauge-center">
-          <span className="console-plugin-capsule__gauge-pct">{pct}&nbsp;%</span>
+          <span className="console-plugin-capsule__gauge-pct">{centerLabel}</span>
           <span className="console-plugin-capsule__gauge-used-label">used</span>
         </div>
       </div>
-      <span className="console-plugin-capsule__gauge-subtext">
-        {used ?? '0'} of {hard ?? '0'}
-      </span>
+      {!count && (
+        <span className="console-plugin-capsule__gauge-subtext">
+          {used ?? '0'} of {hard ?? '0'}
+        </span>
+      )}
     </div>
   );
 }

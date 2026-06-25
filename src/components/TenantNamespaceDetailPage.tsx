@@ -14,8 +14,12 @@ import {
   GridItem,
   Label,
   LabelGroup,
+  MenuToggle,
   Modal,
   PageSection,
+  Select,
+  SelectList,
+  SelectOption,
   Spinner,
   TextInput,
   TextInputGroup,
@@ -23,8 +27,13 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
-import { CapsuleClient } from '../utils/capsule';
+import { CapsuleClient, CAPSULE_APIS } from '../utils/capsule';
+import type { ResourcePool, ResourcePoolClaim } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
+import type { V1ResourceQuota } from '@kubernetes/client-node';
+import { UsageGauge } from '../utils/common';
+import { ResourcePoolClaimsTable } from './ResourcePoolClaimsTable';
+import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
 import './ResourcePoolDetailPage.css';
 
 const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
@@ -33,6 +42,19 @@ const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
   apiKind: 'namespaces',
   apiKindSingle: 'Namespace',
 });
+
+const resourceQuotasApi = new CapsuleClient<V1ResourceQuota>({
+  apiGroup: '',
+  apiVersion: 'v1',
+  apiKind: 'resourcequotas',
+  apiKindSingle: 'ResourceQuota',
+});
+
+const resourcePoolsApi = new CapsuleClient<ResourcePool>(CAPSULE_APIS.RESOURCE_POOLS);
+
+const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(
+  CAPSULE_APIS.RESOURCE_POOL_CLAIMS,
+);
 
 const HIDDEN_ANNOTATION_KEYS = ['kubectl.kubernetes.io/last-applied-configuration'];
 
@@ -330,6 +352,22 @@ export default function TenantNamespaceDetailPage() {
   const [refreshToken, setRefreshToken] = useState(0);
   const [openModal, setOpenModal] = useState<'labels' | 'annotations' | null>(null);
 
+  // Quotas section state
+  const [quotaNames, setQuotaNames] = useState<string[]>([]);
+  const [quotasLoaded, setQuotasLoaded] = useState(false);
+  const [quotaSelectOpen, setQuotaSelectOpen] = useState(false);
+  const [selectedQuotaName, setSelectedQuotaName] = useState('');
+  // Individually fetched quota (has status.hard/used populated)
+  const [selectedQuota, setSelectedQuota] = useState<V1ResourceQuota | null>(null);
+  const [quotaLoaded, setQuotaLoaded] = useState(false);
+  const [pool, setPool] = useState<ResourcePool | null>(null);
+  const [poolName, setPoolName] = useState<string | null>(null);
+  const [poolLoaded, setPoolLoaded] = useState(false);
+  const [claims, setClaims] = useState<ResourcePoolClaim[]>([]);
+  const [claimsLoaded, setClaimsLoaded] = useState(false);
+  const [claimsError, setClaimsError] = useState<string | null>(null);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
+
   useEffect(() => {
     if (!name) return;
     setLoaded(false);
@@ -345,6 +383,99 @@ export default function TenantNamespaceDetailPage() {
         setLoaded(true);
       });
   }, [name, t, refreshToken]);
+
+  // List ResourceQuotas to populate the dropdown
+  useEffect(() => {
+    if (!name) return;
+    setQuotasLoaded(false);
+    resourceQuotasApi
+      .fetch({ namespace: name })
+      .then((data) => {
+        const names = (data.items ?? [])
+          .map((q) => q.metadata?.name ?? '')
+          .filter(Boolean);
+        setQuotaNames(names);
+        setQuotasLoaded(true);
+        setSelectedQuotaName((prev) => (!prev && names.length > 0 ? names[0] : prev));
+      })
+      .catch(() => {
+        setQuotasLoaded(true);
+      });
+  }, [name, refreshToken]);
+
+  // Fetch the selected quota individually to get status.hard/used
+  useEffect(() => {
+    if (!name || !selectedQuotaName) {
+      setSelectedQuota(null);
+      setPool(null);
+      setPoolName(null);
+      return;
+    }
+    setQuotaLoaded(false);
+    setSelectedQuota(null);
+    resourceQuotasApi
+      .fetch({ name: selectedQuotaName, namespace: name })
+      .then((data) => {
+        setSelectedQuota(data);
+        setQuotaLoaded(true);
+        // Derive pool from ownerReference
+        const poolRef = data.metadata?.ownerReferences?.find((r) => r.kind === 'ResourcePool');
+        const derivedPoolName =
+          poolRef?.name ??
+          (data.metadata?.name?.startsWith('capsule-pool-')
+            ? data.metadata.name.slice('capsule-pool-'.length)
+            : null);
+        setPoolName(derivedPoolName);
+      })
+      .catch(() => {
+        setQuotaLoaded(true);
+        setPoolName(null);
+      });
+  }, [name, selectedQuotaName, refreshToken]);
+
+  // Fetch the ResourcePool when poolName is known
+  useEffect(() => {
+    if (!poolName) {
+      setPool(null);
+      setPoolLoaded(true);
+      return;
+    }
+    setPoolLoaded(false);
+    resourcePoolsApi
+      .fetch({ name: poolName })
+      .then((data) => {
+        setPool(data);
+        setPoolLoaded(true);
+      })
+      .catch(() => {
+        setPool(null);
+        setPoolLoaded(true);
+      });
+  }, [poolName]);
+
+  // Fetch all claims globally, filter client-side by pool + namespace (matches ResourcePoolDetailPage pattern)
+  useEffect(() => {
+    if (!name || !poolName) {
+      setClaims([]);
+      setClaimsLoaded(true);
+      return;
+    }
+    setClaimsLoaded(false);
+    setClaimsError(null);
+    resourcePoolClaimsApi
+      .fetch()
+      .then((data) => {
+        const filtered = (data.items ?? []).filter(
+          (c) => c.spec.pool === poolName && c.metadata.namespace === name,
+        );
+        setClaims(filtered);
+        setClaimsLoaded(true);
+      })
+      .catch((e: Error) => {
+        setClaimsError(e.message ?? t('Failed to fetch claims'));
+        setClaimsLoaded(true);
+      });
+  }, [name, poolName, refreshToken, t]);
 
   if (!loaded) {
     return (
@@ -366,6 +497,15 @@ export default function TenantNamespaceDetailPage() {
 
   const labelEntries = Object.entries(namespace?.metadata?.labels ?? {});
   const annotationCount = Object.keys(visibleAnnotations(namespace?.metadata?.annotations)).length;
+
+  const quotaHard = (selectedQuota?.status?.hard ?? {}) as Record<string, string>;
+  const quotaUsed = (selectedQuota?.status?.used ?? {}) as Record<string, string>;
+  const tenant = pool?.metadata?.labels?.['capsule.clastix.io/tenant'] ?? '';
+  const poolAvailable =
+    pool?.status?.allocation?.available ??
+    pool?.status?.allocation?.hard ??
+    pool?.spec.hard ??
+    {};
 
   return (
     <>
@@ -458,6 +598,110 @@ export default function TenantNamespaceDetailPage() {
         </span>
       </PageSection>
 
+      <PageSection className="console-plugin-capsule__claims-section">
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}
+        >
+          <Title headingLevel="h2" size="lg">
+            {t('Quotas')}
+          </Title>
+          {pool && (
+            <Button variant="primary" onClick={() => setClaimModalOpen(true)}>
+              {t('Create Claim')}
+            </Button>
+          )}
+        </div>
+
+        {!quotasLoaded && <Spinner aria-label={t('Loading quotas')} />}
+
+        {quotasLoaded && quotaNames.length === 0 && (
+          <span>{t('No resource quotas for this namespace.')}</span>
+        )}
+
+        {quotasLoaded && quotaNames.length > 0 && (
+          <>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <Select
+                isOpen={quotaSelectOpen}
+                selected={selectedQuotaName}
+                onSelect={(_e, val) => {
+                  setSelectedQuotaName(String(val));
+                  setQuotaSelectOpen(false);
+                }}
+                onOpenChange={setQuotaSelectOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setQuotaSelectOpen((o) => !o)}
+                    isExpanded={quotaSelectOpen}
+                  >
+                    {selectedQuotaName || t('Select quota')}
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  {quotaNames.map((qName) => (
+                    <SelectOption
+                      key={qName}
+                      value={qName}
+                      isSelected={qName === selectedQuotaName}
+                    >
+                      {qName}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </div>
+
+            {!quotaLoaded && selectedQuotaName && (
+              <Spinner aria-label={t('Loading quota')} />
+            )}
+
+            {quotaLoaded && selectedQuota && (
+              <>
+                <Title headingLevel="h3" size="md" style={{ marginBottom: '0.75rem' }}>
+                  {t('Current usage')}
+                </Title>
+                <div className="console-plugin-capsule__gauges" style={{ marginBottom: '1.5rem' }}>
+                  {Object.keys(quotaHard).map((resource) => (
+                    <UsageGauge
+                      key={resource}
+                      resource={resource}
+                      used={quotaUsed[resource]}
+                      hard={quotaHard[resource]}
+                    />
+                  ))}
+                  {Object.keys(quotaHard).length === 0 && (
+                    <span>{t('No resource limits defined.')}</span>
+                  )}
+                </div>
+
+                {poolName && (
+                  <>
+                    <Title headingLevel="h3" size="md" style={{ marginBottom: '0.75rem' }}>
+                      {t('ResourcePoolClaims')}
+                    </Title>
+                    {!poolLoaded ? (
+                      <Spinner aria-label={t('Loading pool')} />
+                    ) : (
+                      <ResourcePoolClaimsTable
+                        claims={claims}
+                        claimsLoaded={claimsLoaded}
+                        claimsError={claimsError}
+                        pool={pool}
+                        onRefresh={() => setRefreshToken((n) => n + 1)}
+                        emptyMessage={t('No claims for this namespace.')}
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </PageSection>
+
       {openModal === 'labels' && namespace && (
         <EditLabelsModal
           namespace={namespace}
@@ -475,6 +719,19 @@ export default function TenantNamespaceDetailPage() {
           onSaved={(updated) => {
             setNamespace(updated);
             setOpenModal(null);
+          }}
+        />
+      )}
+      {claimModalOpen && pool && (
+        <CreateResourcePoolClaimModal
+          poolName={pool.metadata.name}
+          poolHard={poolAvailable}
+          tenantName={tenant}
+          defaultNamespace={name}
+          onClose={() => setClaimModalOpen(false)}
+          onCreated={() => {
+            setClaimModalOpen(false);
+            setRefreshToken((n) => n + 1);
           }}
         />
       )}

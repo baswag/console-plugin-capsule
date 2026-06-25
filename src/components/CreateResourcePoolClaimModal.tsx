@@ -21,6 +21,7 @@ interface CreateResourcePoolClaimModalProps {
   poolName: string;
   poolHard: ResourceQuantity;
   tenantName: string;
+  defaultNamespace?: string;
   onClose: () => void;
   onCreated: () => void;
 }
@@ -29,13 +30,14 @@ export default function CreateResourcePoolClaimModal({
   poolName,
   poolHard,
   tenantName,
+  defaultNamespace,
   onClose,
   onCreated,
 }: CreateResourcePoolClaimModalProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [nsSelectOpen, setNsSelectOpen] = useState(false);
-  const [selectedNamespace, setSelectedNamespace] = useState('');
+  const [selectedNamespace, setSelectedNamespace] = useState(defaultNamespace ?? '');
   const [claimName, setClaimName] = useState('');
   const [resources, setResources] = useState<ResourceQuantity>({});
   const [submitting, setSubmitting] = useState(false);
@@ -71,7 +73,7 @@ export default function CreateResourcePoolClaimModal({
       .then((data) => {
         const names = (data.items ?? []).map((ns) => ns.metadata.name);
         setNamespaces(names);
-        if (names.length > 0) setSelectedNamespace(names[0]);
+        if (!defaultNamespace && names.length > 0) setSelectedNamespace(names[0]);
       })
       .catch(() => {
         setNamespaces([]);
