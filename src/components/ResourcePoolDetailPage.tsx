@@ -17,7 +17,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { TrashIcon, PencilAltIcon } from '@patternfly/react-icons';
+import { TrashIcon, PencilAltIcon, SyncAltIcon } from '@patternfly/react-icons';
 import type { ResourcePool, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
 import { addQuantity, CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
@@ -232,6 +232,9 @@ export default function ResourcePoolDetailPage() {
     <>
       <DocumentTitle>{t('Resource Pool: {{name}}', { name })}</DocumentTitle>
       <ListPageHeader title={`${t('Resource Pool')}: ${name}`}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
         <Button
           variant="primary"
           onClick={() => {

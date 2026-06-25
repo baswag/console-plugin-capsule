@@ -26,6 +26,7 @@ import './ResourcePoolDetailPage.css';
 import type { V1ResourceQuota } from '@kubernetes/client-node';
 import { UsageGauge } from '../utils/common';
 import EditResourcePoolClaimModal from './EditResourcePoolClaimModal';
+import { SyncAltIcon } from '@patternfly/react-icons';
 
 function getClaimBoundStatus(claim: ResourcePoolClaim | null) {
   return claim?.status?.conditions.find((x) => x.type === 'Bound')?.status ?? '-';
@@ -168,6 +169,9 @@ export default function ResourcePoolClaimDetailPage() {
     <>
       <DocumentTitle>{t('ResourcePoolClaim: {{name}}', { name })}</DocumentTitle>
       <ListPageHeader title={`${t('ResourcePoolClaim')}: ${name}`}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setClaimRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
         {canUpdateClaim && claim && getClaimBoundStatus(claim) !== 'True' && (
           <Button
             variant="secondary"

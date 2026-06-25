@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
 import DocumentTitle from '../utils/DocumentTitle';
 import { Button, Pagination, Spinner } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
@@ -51,8 +52,11 @@ export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
+    setLoaded(false);
+    setLoadError(null);
     tenantApi
       .fetch()
       .then((data) => {
@@ -63,7 +67,7 @@ export default function TenantsPage() {
         setLoadError(e.message ?? t('Failed to fetch tenants'));
         setLoaded(true);
       });
-  }, [t]);
+  }, [t, refreshToken]);
 
   const { filtered, filters, onSetFilters } = useNameFilter(tenants);
   const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
@@ -108,6 +112,9 @@ export default function TenantsPage() {
     <>
       <DocumentTitle>{t('Tenants')}</DocumentTitle>
       <ListPageHeader title={t('Tenants')}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
         {canCreate && (
           <Button
             variant="primary"

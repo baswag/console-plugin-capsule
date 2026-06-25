@@ -22,6 +22,7 @@ import {
   DataViewTextFilter,
   DataViewToolbar,
 } from '@patternfly/react-data-view';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { Tenant, TenantResource } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
@@ -73,6 +74,7 @@ export default function TenantResourcePage() {
   const [items, setItems] = useState<TenantResource[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const [canCreate] = useAccessReview({
     group: CAPSULE_APIS.TENANT_RESOURCES.apiGroup,
@@ -120,7 +122,7 @@ export default function TenantResourcePage() {
         setLoadError(e.message ?? t('Failed to fetch TenantResources'));
         setLoaded(true);
       });
-  }, [selectedNamespace, selectedTenant, t]);
+  }, [selectedNamespace, selectedTenant, t, refreshToken]);
 
   const { filtered, filters, onSetFilters } = useNameFilter(items);
   const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
@@ -189,6 +191,9 @@ export default function TenantResourcePage() {
     <>
       <DocumentTitle>{t('Tenant Resources')}</DocumentTitle>
       <ListPageHeader title={t('Tenant Resources')}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
         {canCreate && selectedNamespace && (
           <Button
             variant="primary"

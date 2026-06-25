@@ -29,7 +29,7 @@ import type { Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
-import { TrashIcon } from '@patternfly/react-icons';
+import { SyncAltIcon, TrashIcon } from '@patternfly/react-icons';
 
 const COLUMN_KEYS = ['name', 'status', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
@@ -277,7 +277,11 @@ export default function TenantNamespacesPage() {
   return (
     <>
       <DocumentTitle>{t('Tenant Namespaces')}</DocumentTitle>
-      <ListPageHeader title={t('Tenant Namespaces')} />
+      <ListPageHeader title={t('Tenant Namespaces')}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
+      </ListPageHeader>
       <DataView activeState={activeState}>
         <DataViewToolbar
           filters={

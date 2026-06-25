@@ -15,6 +15,7 @@ import {
   Spinner,
   ToolbarItem,
 } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
@@ -60,6 +61,7 @@ export default function ResourcePoolsPage() {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [claimModalPool, setClaimModalPool] = useState<ResourcePool | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const [canCreatePool] = useAccessReview({
     group: CAPSULE_APIS.RESOURCE_POOLS.apiGroup,
@@ -84,6 +86,8 @@ export default function ResourcePoolsPage() {
   }, []);
 
   useEffect(() => {
+    setLoaded(false);
+    setLoadError(null);
     resourcePoolsApi
       .fetch(
         selectedTenant
@@ -98,7 +102,7 @@ export default function ResourcePoolsPage() {
         setLoadError(e.message ?? t('Failed to fetch resource pools'));
         setLoaded(true);
       });
-  }, [selectedTenant, t]);
+  }, [selectedTenant, t, refreshToken]);
 
   const { filtered, filters, onSetFilters } = useNameFilter(pools);
   const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
@@ -181,6 +185,9 @@ export default function ResourcePoolsPage() {
     <>
       <DocumentTitle>{t('Resource Pools')}</DocumentTitle>
       <ListPageHeader title={t('Resource Pools')}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
         {canCreatePool && (
           <Button
             variant="primary"

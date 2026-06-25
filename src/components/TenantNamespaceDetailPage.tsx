@@ -18,7 +18,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { MinusCircleIcon, PlusCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import './ResourcePoolDetailPage.css';
@@ -138,6 +138,7 @@ export default function TenantNamespaceDetailPage() {
   const [namespace, setNamespace] = useState<V1NamespaceString | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const [labelRows, setLabelRows] = useState<KVRow[]>([]);
   const [annotationRows, setAnnotationRows] = useState<KVRow[]>([]);
@@ -183,7 +184,7 @@ export default function TenantNamespaceDetailPage() {
         setLoadError(e.message ?? t('Failed to fetch namespace'));
         setLoaded(true);
       });
-  }, [name, t]);
+  }, [name, t, refreshToken]);
 
   const handleSave = () => {
     if (!name) return;
@@ -255,7 +256,11 @@ export default function TenantNamespaceDetailPage() {
   return (
     <>
       <DocumentTitle>{t('Namespace: {{name}}', { name })}</DocumentTitle>
-      <ListPageHeader title={`${t('Namespace')}: ${name}`} />
+      <ListPageHeader title={`${t('Namespace')}: ${name}`}>
+        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+          <SyncAltIcon />
+        </Button>
+      </ListPageHeader>
 
       <PageSection>
         <DescriptionList isHorizontal className="console-plugin-capsule__detail-meta">
