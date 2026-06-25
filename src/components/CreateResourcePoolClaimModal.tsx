@@ -36,6 +36,7 @@ export default function CreateResourcePoolClaimModal({
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [nsSelectOpen, setNsSelectOpen] = useState(false);
   const [selectedNamespace, setSelectedNamespace] = useState('');
+  const [claimName, setClaimName] = useState('');
   const [resources, setResources] = useState<ResourceQuantity>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +88,7 @@ export default function CreateResourcePoolClaimModal({
       if (val.trim()) hard[key] = val.trim();
     }
 
-    const claimName = `${poolName}-${selectedNamespace}`;
+    const completeName = `${selectedNamespace}-${claimName}`;
 
     resourcePoolClaimsApi
       .fetch(
@@ -95,7 +96,7 @@ export default function CreateResourcePoolClaimModal({
         {
           apiVersion: `${CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiGroup}/${CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiVersion}`,
           kind: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiKindSingle,
-          metadata: { name: claimName, namespace: selectedNamespace },
+          metadata: { name: completeName, namespace: selectedNamespace },
           spec: { pool: poolName, claim: hard },
         },
       )
@@ -168,6 +169,21 @@ export default function CreateResourcePoolClaimModal({
               ))}
             </SelectList>
           </Select>
+        </FormGroup>
+        <FormGroup
+          key="name"
+          label={t('Name')}
+          isRequired
+          fieldId="claim-name"
+        >
+          <TextInput
+            id="claim-name"
+            value={claimName ?? ''}
+            placeholder={t('Name')}
+            onChange={(_e, val) => {
+              setClaimName(val)
+            }}
+          ></TextInput>
         </FormGroup>
         {Object.keys(poolHard ?? {}).map((resource) => (
           <FormGroup
