@@ -191,6 +191,20 @@ export default function TenantNamespaceDetailPage() {
     setSaveError(null);
     setSaveSuccess(false);
 
+    const newLabels = toRecord(labelRows);
+    const newAnnotationsVisible = toRecord(annotationRows);
+
+    // JSON merge-patch requires explicit null to delete a key; omitting it leaves it unchanged.
+    const labelPatch: Record<string, string | null> = { ...newLabels };
+    for (const key of Object.keys(savedLabels)) {
+      if (!(key in newLabels)) labelPatch[key] = null;
+    }
+
+    const annotationPatch: Record<string, string | null> = { ...newAnnotationsVisible };
+    for (const key of Object.keys(savedAnnotations)) {
+      if (!(key in newAnnotationsVisible)) annotationPatch[key] = null;
+    }
+
     // Re-attach any hidden annotations that were excluded from the editor
     const hiddenAnnotations = Object.fromEntries(
       Object.entries(namespace?.metadata?.annotations ?? {}).filter(([key]) =>
@@ -201,8 +215,8 @@ export default function TenantNamespaceDetailPage() {
     namespacesApiClient
       .patch(name, {
         metadata: {
-          labels: toRecord(labelRows),
-          annotations: { ...toRecord(annotationRows), ...hiddenAnnotations },
+          labels: labelPatch,
+          annotations: { ...annotationPatch, ...hiddenAnnotations },
         },
       })
       .then((updated) => {

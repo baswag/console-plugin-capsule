@@ -106,8 +106,8 @@ export default function TenantsPage() {
 
   return (
     <>
-      <DocumentTitle>{t('Capsule Tenants')}</DocumentTitle>
-      <ListPageHeader title={t('Capsule Tenants')}>
+      <DocumentTitle>{t('Tenants')}</DocumentTitle>
+      <ListPageHeader title={t('Tenants')}>
         {canCreate && (
           <Button
             variant="primary"
