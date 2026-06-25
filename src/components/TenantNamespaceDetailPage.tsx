@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import { ListPageHeader, ResourceLink, Timestamp } from '@openshift-console/dynamic-plugin-sdk';
-import DocumentTitle from '../utils/DocumentTitle';
+import { ListPageHeader, ResourceLink, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
   Button,
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -16,6 +16,9 @@ import {
   LabelGroup,
   MenuToggle,
   Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   PageSection,
   Select,
   SelectList,
@@ -24,7 +27,6 @@ import {
   TextInput,
   TextInputGroup,
   TextInputGroupMain,
-  Title,
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { CapsuleClient, CAPSULE_APIS } from '../utils/capsule';
@@ -159,57 +161,49 @@ function EditLabelsModal({ namespace, onClose, onSaved }: EditLabelsModalProps) 
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      variant="medium"
-      title={t('Edit labels')}
-      actions={[
-        <Button
-          key="save"
-          variant="primary"
-          onClick={handleSave}
-          isDisabled={saving}
-          isLoading={saving}
-        >
-          {t('Save')}
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose} isDisabled={saving}>
-          {t('Cancel')}
-        </Button>,
-      ]}
-    >
-      {error && (
-        <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-          {error}
-        </Alert>
-      )}
-      <p>
-        {t(
-          'Labels help you organize and select resources. Adding labels below will let you query for objects that have similar, overlapping or dissimilar labels.',
+    <Modal isOpen onClose={onClose} variant="medium">
+      <ModalHeader title={t('Edit labels')} />
+      <ModalBody>
+        {error && (
+          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+            {error}
+          </Alert>
         )}
-      </p>
-      <p style={{ marginTop: '0.75rem' }}>
-        <strong>
-          {t('Labels for')} {name}
-        </strong>
-      </p>
-      <TextInputGroup style={{ marginTop: '0.5rem' }}>
-        <TextInputGroupMain
-          value={inputValue}
-          onChange={(_e, val) => setInputValue(val)}
-          onKeyDown={handleKeyDown}
-          placeholder={labels.length === 0 ? 'app=frontend' : undefined}
-        >
-          <LabelGroup>
-            {labels.map((label) => (
-              <Label key={label} onClose={() => removeLabel(label)}>
-                {label}
-              </Label>
-            ))}
-          </LabelGroup>
-        </TextInputGroupMain>
-      </TextInputGroup>
+        <p>
+          {t(
+            'Labels help you organize and select resources. Adding labels below will let you query for objects that have similar, overlapping or dissimilar labels.',
+          )}
+        </p>
+        <p style={{ marginTop: '0.75rem' }}>
+          <strong>
+            {t('Labels for')} {name}
+          </strong>
+        </p>
+        <TextInputGroup style={{ marginTop: '0.5rem' }}>
+          <TextInputGroupMain
+            value={inputValue}
+            onChange={(_e, val) => setInputValue(val)}
+            onKeyDown={handleKeyDown}
+            placeholder={labels.length === 0 ? 'app=frontend' : undefined}
+          >
+            <LabelGroup>
+              {labels.map((label) => (
+                <Label key={label} onClose={() => removeLabel(label)}>
+                  {label}
+                </Label>
+              ))}
+            </LabelGroup>
+          </TextInputGroupMain>
+        </TextInputGroup>
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="primary" onClick={handleSave} isDisabled={saving} isLoading={saving}>
+          {t('Save')}
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={saving}>
+          {t('Cancel')}
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }
@@ -311,32 +305,24 @@ function EditAnnotationsModal({ namespace, onClose, onSaved }: EditAnnotationsMo
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      variant="medium"
-      title={t('Edit annotations')}
-      actions={[
-        <Button
-          key="save"
-          variant="primary"
-          onClick={handleSave}
-          isDisabled={saving}
-          isLoading={saving}
-        >
+    <Modal isOpen onClose={onClose} variant="medium">
+      <ModalHeader title={t('Edit annotations')} />
+      <ModalBody>
+        {error && (
+          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+            {error}
+          </Alert>
+        )}
+        <KeyValueEditor rows={rows} onChange={setRows} idPrefix="annotations" />
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="primary" onClick={handleSave} isDisabled={saving} isLoading={saving}>
           {t('Save')}
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose} isDisabled={saving}>
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={saving}>
           {t('Cancel')}
-        </Button>,
-      ]}
-    >
-      {error && (
-        <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-          {error}
-        </Alert>
-      )}
-      <KeyValueEditor rows={rows} onChange={setRows} idPrefix="annotations" />
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }
@@ -558,9 +544,9 @@ export default function TenantNamespaceDetailPage() {
         <div
           style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}
         >
-          <Title headingLevel="h2" size="lg">
+          <Content component="h2">
             {t('Labels')}
-          </Title>
+          </Content>
           <Button variant="link" onClick={() => setOpenModal('labels')}>
             {t('Edit')}
           </Button>
@@ -574,7 +560,7 @@ export default function TenantNamespaceDetailPage() {
             ))}
           </LabelGroup>
         ) : (
-          <span style={{ color: 'var(--pf-v5-global--Color--200)' }}>{t('No labels')}</span>
+          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>{t('No labels')}</span>
         )}
 
         <div
@@ -586,9 +572,9 @@ export default function TenantNamespaceDetailPage() {
             marginBottom: '0.5rem',
           }}
         >
-          <Title headingLevel="h2" size="lg">
+          <Content component="h2">
             {t('Annotations')}
-          </Title>
+          </Content>
           <Button variant="link" onClick={() => setOpenModal('annotations')}>
             {t('Edit')}
           </Button>
@@ -602,9 +588,9 @@ export default function TenantNamespaceDetailPage() {
         <div
           style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}
         >
-          <Title headingLevel="h2" size="lg">
+          <Content component="h2">
             {t('Quotas')}
-          </Title>
+          </Content>
           {pool && (
             <Button variant="primary" onClick={() => setClaimModalOpen(true)}>
               {t('Create Claim')}
@@ -660,9 +646,9 @@ export default function TenantNamespaceDetailPage() {
 
             {quotaLoaded && selectedQuota && (
               <>
-                <Title headingLevel="h3" size="md" style={{ marginBottom: '0.75rem' }}>
+                <Content component="h3" style={{ marginBottom: '0.75rem' }}>
                   {t('Current usage')}
-                </Title>
+                </Content>
                 <div className="console-plugin-capsule__gauges" style={{ marginBottom: '1.5rem' }}>
                   {Object.keys(quotaHard).map((resource) => (
                     <UsageGauge
@@ -679,9 +665,9 @@ export default function TenantNamespaceDetailPage() {
 
                 {poolName && (
                   <>
-                    <Title headingLevel="h3" size="md" style={{ marginBottom: '0.75rem' }}>
+                    <Content component="h3" style={{ marginBottom: '0.75rem' }}>
                       {t('ResourcePoolClaims')}
-                    </Title>
+                    </Content>
                     {!poolLoaded ? (
                       <Spinner aria-label={t('Loading pool')} />
                     ) : (

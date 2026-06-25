@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Timestamp } from '@openshift-console/dynamic-plugin-sdk';
-import { Alert, Button, Modal, Pagination, Spinner } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  Pagination,
+  Spinner,
+} from '@patternfly/react-core';
 import { TrashIcon, PencilAltIcon } from '@patternfly/react-icons';
 import type { ResourcePool, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
 import { addQuantity, CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
@@ -178,39 +187,31 @@ export function ResourcePoolClaimsTable({
       </DataView>
 
       {claimToDelete && (
-        <Modal
-          isOpen
-          onClose={() => setClaimToDelete(null)}
-          variant="small"
-          title={t('Delete ResourcePoolClaim?')}
-          actions={[
+        <Modal isOpen onClose={() => setClaimToDelete(null)} variant="small">
+          <ModalHeader title={t('Delete ResourcePoolClaim?')} />
+          <ModalBody>
+            {deleteError && (
+              <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+                {deleteError}
+              </Alert>
+            )}
+            {t('Are you sure you want to delete {{name}}? This cannot be undone.', {
+              name: claimToDelete.metadata.name,
+            })}
+          </ModalBody>
+          <ModalFooter>
             <Button
-              key="delete"
               variant="danger"
               onClick={handleDeleteClaim}
               isDisabled={deleting}
               isLoading={deleting}
             >
               {t('Delete')}
-            </Button>,
-            <Button
-              key="cancel"
-              variant="link"
-              onClick={() => setClaimToDelete(null)}
-              isDisabled={deleting}
-            >
+            </Button>
+            <Button variant="link" onClick={() => setClaimToDelete(null)} isDisabled={deleting}>
               {t('Cancel')}
-            </Button>,
-          ]}
-        >
-          {deleteError && (
-            <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-              {deleteError}
-            </Alert>
-          )}
-          {t('Are you sure you want to delete {{name}}? This cannot be undone.', {
-            name: claimToDelete.metadata.name,
-          })}
+            </Button>
+          </ModalFooter>
         </Modal>
       )}
 

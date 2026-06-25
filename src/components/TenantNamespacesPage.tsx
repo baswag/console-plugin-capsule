@@ -2,13 +2,15 @@ import type { MouseEvent, RefObject } from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
-import { ListPageHeader, Timestamp } from '@openshift-console/dynamic-plugin-sdk';
-import DocumentTitle from '../utils/DocumentTitle';
+import { ListPageHeader, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
   Button,
   MenuToggle,
   Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Pagination,
   Select,
   SelectList,
@@ -89,43 +91,26 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
         </Button>
       )}
       {deleteOpen && (
-        <Modal
-          isOpen
-          onClose={() => {
-            setDeleteOpen(false);
-          }}
-          variant="small"
-          title={t('Delete Namespace')}
-          actions={[
-            <Button
-              key="delete"
-              variant="danger"
-              onClick={deleteNamespace}
-              isDisabled={deleting}
-              isLoading={deleting}
-            >
+        <Modal isOpen onClose={() => setDeleteOpen(false)} variant="small">
+          <ModalHeader title={t('Delete Namespace')} />
+          <ModalBody>
+            {deleteError && (
+              <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+                {deleteError}
+              </Alert>
+            )}
+            {t('Are you sure you want to delete namespace {{name}}? This cannot be undone.', {
+              name: ns.metadata.name,
+            })}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="danger" onClick={deleteNamespace} isDisabled={deleting} isLoading={deleting}>
               {t('Delete')}
-            </Button>,
-            <Button
-              key="cancel"
-              variant="link"
-              onClick={() => {
-                setDeleteOpen(false);
-              }}
-              isDisabled={deleting}
-            >
+            </Button>
+            <Button variant="link" onClick={() => setDeleteOpen(false)} isDisabled={deleting}>
               {t('Cancel')}
-            </Button>,
-          ]}
-        >
-          {deleteError && (
-            <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-              {deleteError}
-            </Alert>
-          )}
-          {t('Are you sure you want to delete namespace {{name}}? This cannot be undone.', {
-            name: ns.metadata.name,
-          })}
+            </Button>
+          </ModalFooter>
         </Modal>
       )}
     </>

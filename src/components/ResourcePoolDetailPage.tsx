@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import { ListPageHeader } from '@openshift-console/dynamic-plugin-sdk';
-import DocumentTitle from '../utils/DocumentTitle';
+import { DocumentTitle, ListPageHeader } from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
   Button,
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -13,7 +13,6 @@ import {
   Label,
   PageSection,
   Spinner,
-  Title,
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import type { ResourcePool, ResourcePoolClaim } from '../utils/capsule';
@@ -120,9 +119,9 @@ export default function ResourcePoolDetailPage() {
       </ListPageHeader>
 
       <PageSection>
-        <Title headingLevel="h2" size="lg">
+        <Content component="h2">
           {t('Resource Pool details')}
-        </Title>
+        </Content>
 
         <div className="console-plugin-capsule__gauges">
           {Object.keys(hard).map((resource) => (
@@ -151,9 +150,9 @@ export default function ResourcePoolDetailPage() {
       </PageSection>
 
       <PageSection className="console-plugin-capsule__claims-section">
-        <Title headingLevel="h2" size="lg" style={{ marginBottom: '1rem' }}>
+        <Content component="h2" style={{ marginBottom: '1rem' }}>
           {t('ResourcePoolClaims')}
-        </Title>
+        </Content>
 
         <ResourcePoolClaimsTable
           claims={claims}

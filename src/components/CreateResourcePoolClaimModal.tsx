@@ -8,6 +8,9 @@ import {
   FormGroup,
   MenuToggle,
   Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Select,
   SelectList,
   SelectOption,
@@ -124,86 +127,78 @@ export default function CreateResourcePoolClaimModal({
   );
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      variant="medium"
-      title={t('Create ResourcePoolClaim')}
-      actions={[
+    <Modal isOpen onClose={onClose} variant="medium">
+      <ModalHeader title={t('Create ResourcePoolClaim')} />
+      <ModalBody>
+        <p>{t('Claim resources from pool: {{poolName}}', { poolName })}</p>
+        {error && (
+          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+            {error}
+          </Alert>
+        )}
+        <Form>
+          <FormGroup label={t('Namespace')} isRequired fieldId="claim-namespace">
+            <Select
+              isOpen={nsSelectOpen}
+              selected={selectedNamespace}
+              onSelect={(_: MouseEvent | undefined, val: string | number | undefined) => {
+                setSelectedNamespace(String(val));
+                setNsSelectOpen(false);
+              }}
+              onOpenChange={setNsSelectOpen}
+              toggle={nsToggle}
+              shouldFocusToggleOnSelect
+            >
+              <SelectList>
+                {namespaces.map((ns) => (
+                  <SelectOption key={ns} value={ns} isSelected={ns === selectedNamespace}>
+                    {ns}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
+          </FormGroup>
+          <FormGroup key="name" label={t('Name')} isRequired fieldId="claim-name">
+            <TextInput
+              id="claim-name"
+              value={claimName ?? ''}
+              placeholder={t('Name')}
+              onChange={(_e, val) => {
+                setClaimName(val);
+              }}
+            />
+          </FormGroup>
+          {Object.keys(poolHard ?? {}).map((resource) => (
+            <FormGroup
+              key={resource}
+              label={`${resource} (${t('max')}: ${poolHard[resource]})`}
+              fieldId={`claim-${resource}`}
+            >
+              <TextInput
+                id={`claim-${resource}`}
+                value={resources[resource] ?? ''}
+                placeholder={poolHard[resource]}
+                onChange={(_e, val) => {
+                  setResources((prev) => ({ ...prev, [resource]: val }));
+                }}
+              />
+            </FormGroup>
+          ))}
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <Button
-          key="create"
           variant="primary"
           onClick={handleSubmit}
           isDisabled={!selectedNamespace || submitting}
           isLoading={submitting}
         >
           {t('Create')}
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose} isDisabled={submitting}>
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={submitting}>
           {t('Cancel')}
-        </Button>,
-      ]}
-    >
-      <p>{t('Claim resources from pool: {{poolName}}', { poolName })}</p>
-      {error && (
-        <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-          {error}
-        </Alert>
-      )}
-      <Form>
-        <FormGroup label={t('Namespace')} isRequired fieldId="claim-namespace">
-          <Select
-            isOpen={nsSelectOpen}
-            selected={selectedNamespace}
-            onSelect={(_: MouseEvent | undefined, val: string | number | undefined) => {
-              setSelectedNamespace(String(val));
-              setNsSelectOpen(false);
-            }}
-            onOpenChange={setNsSelectOpen}
-            toggle={nsToggle}
-            shouldFocusToggleOnSelect
-          >
-            <SelectList>
-              {namespaces.map((ns) => (
-                <SelectOption key={ns} value={ns} isSelected={ns === selectedNamespace}>
-                  {ns}
-                </SelectOption>
-              ))}
-            </SelectList>
-          </Select>
-        </FormGroup>
-        <FormGroup
-          key="name"
-          label={t('Name')}
-          isRequired
-          fieldId="claim-name"
-        >
-          <TextInput
-            id="claim-name"
-            value={claimName ?? ''}
-            placeholder={t('Name')}
-            onChange={(_e, val) => {
-              setClaimName(val)
-            }}
-          ></TextInput>
-        </FormGroup>
-        {Object.keys(poolHard ?? {}).map((resource) => (
-          <FormGroup
-            key={resource}
-            label={`${resource} (${t('max')}: ${poolHard[resource]})`}
-            fieldId={`claim-${resource}`}
-          >
-            <TextInput
-              id={`claim-${resource}`}
-              value={resources[resource] ?? ''}
-              placeholder={poolHard[resource]}
-              onChange={(_e, val) => {
-                setResources((prev) => ({ ...prev, [resource]: val }));
-              }}
-            />
-          </FormGroup>
-        ))}
-      </Form>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }

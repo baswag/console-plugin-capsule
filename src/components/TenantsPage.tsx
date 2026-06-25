@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import { ListPageHeader, Timestamp, useAccessReview } from '@openshift-console/dynamic-plugin-sdk';
-import DocumentTitle from '../utils/DocumentTitle';
+import { ListPageHeader, Timestamp, useAccessReview, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import { Button, Pagination, Spinner } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import type { DataViewTr } from '@patternfly/react-data-view';

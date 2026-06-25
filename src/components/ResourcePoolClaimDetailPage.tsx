@@ -2,23 +2,26 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import {
+  DocumentTitle,
   ListPageHeader,
   ResourceLink,
   Timestamp,
   useAccessReview,
 } from '@openshift-console/dynamic-plugin-sdk';
-import DocumentTitle from '../utils/DocumentTitle';
 import {
   Alert,
   Button,
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
   Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   PageSection,
   Spinner,
-  Title,
 } from '@patternfly/react-core';
 import type { ResourcePool, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
 import { addQuantity, CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
@@ -196,9 +199,9 @@ export default function ResourcePoolClaimDetailPage() {
       </ListPageHeader>
 
       <PageSection>
-        <Title headingLevel="h2" size="lg">
+        <Content component="h2">
           {t('Current usage')}
-        </Title>
+        </Content>
 
         {!quotaLoaded && <Spinner aria-label={t('Loading usage')} />}
         {quotaLoaded && (
@@ -276,41 +279,24 @@ export default function ResourcePoolClaimDetailPage() {
         />
       )}
       {deleteModalOpen && (
-        <Modal
-          isOpen
-          onClose={() => {
-            setDeleteModalOpen(false);
-          }}
-          variant="small"
-          title={t('Delete ResourcePoolClaim?')}
-          actions={[
-            <Button
-              key="delete"
-              variant="danger"
-              onClick={handleDelete}
-              isDisabled={deleting}
-              isLoading={deleting}
-            >
+        <Modal isOpen onClose={() => setDeleteModalOpen(false)} variant="small">
+          <ModalHeader title={t('Delete ResourcePoolClaim?')} />
+          <ModalBody>
+            {deleteError && (
+              <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+                {deleteError}
+              </Alert>
+            )}
+            {t('Are you sure you want to delete {{name}}? This cannot be undone.', { name })}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="danger" onClick={handleDelete} isDisabled={deleting} isLoading={deleting}>
               {t('Delete')}
-            </Button>,
-            <Button
-              key="cancel"
-              variant="link"
-              onClick={() => {
-                setDeleteModalOpen(false);
-              }}
-              isDisabled={deleting}
-            >
+            </Button>
+            <Button variant="link" onClick={() => setDeleteModalOpen(false)} isDisabled={deleting}>
               {t('Cancel')}
-            </Button>,
-          ]}
-        >
-          {deleteError && (
-            <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-              {deleteError}
-            </Alert>
-          )}
-          {t('Are you sure you want to delete {{name}}? This cannot be undone.', { name })}
+            </Button>
+          </ModalFooter>
         </Modal>
       )}
     </>

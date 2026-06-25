@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Form, FormGroup, Modal, TextInput } from '@patternfly/react-core';
+import {
+  Alert,
+  Button,
+  Form,
+  FormGroup,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  TextInput,
+} from '@patternfly/react-core';
 import type { ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 
@@ -57,51 +67,43 @@ export default function EditResourcePoolClaimModal({
   };
 
   return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      variant="medium"
-      title={t('Edit ResourcePoolClaim')}
-      actions={[
-        <Button
-          key="save"
-          variant="primary"
-          onClick={handleSubmit}
-          isDisabled={submitting}
-          isLoading={submitting}
-        >
+    <Modal isOpen onClose={onClose} variant="medium">
+      <ModalHeader title={t('Edit ResourcePoolClaim')} />
+      <ModalBody>
+        {error && (
+          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+            {error}
+          </Alert>
+        )}
+        <p>{t('Edit claim for pool: {{poolName}}', { poolName: claim.spec.pool })}</p>
+        <Form>
+          {Object.keys(poolHard).map((resource) => (
+            <FormGroup
+              key={resource}
+              label={`${resource} (${t('max')}: ${poolHard[resource]})`}
+              fieldId={`edit-${resource}`}
+            >
+              <TextInput
+                id={`edit-${resource}`}
+                value={resources[resource] ?? ''}
+                placeholder={poolHard[resource]}
+                onChange={(_e, val) => {
+                  setResources((prev) => ({ ...prev, [resource]: val }));
+                }}
+              />
+            </FormGroup>
+          ))}
+          {Object.keys(poolHard).length === 0 && <span>{t('No resource limits defined.')}</span>}
+        </Form>
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="primary" onClick={handleSubmit} isDisabled={submitting} isLoading={submitting}>
           {t('Save')}
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose} isDisabled={submitting}>
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={submitting}>
           {t('Cancel')}
-        </Button>,
-      ]}
-    >
-      {error && (
-        <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-          {error}
-        </Alert>
-      )}
-      <p>{t('Edit claim for pool: {{poolName}}', { poolName: claim.spec.pool })}</p>
-      <Form>
-        {Object.keys(poolHard).map((resource) => (
-          <FormGroup
-            key={resource}
-            label={`${resource} (${t('max')}: ${poolHard[resource]})`}
-            fieldId={`edit-${resource}`}
-          >
-            <TextInput
-              id={`edit-${resource}`}
-              value={resources[resource] ?? ''}
-              placeholder={poolHard[resource]}
-              onChange={(_e, val) => {
-                setResources((prev) => ({ ...prev, [resource]: val }));
-              }}
-            />
-          </FormGroup>
-        ))}
-        {Object.keys(poolHard).length === 0 && <span>{t('No resource limits defined.')}</span>}
-      </Form>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }

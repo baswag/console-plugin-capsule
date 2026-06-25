@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { ISortBy, OnSort } from '@patternfly/react-table';
-import type { DataViewTh } from '@patternfly/react-data-view';
 import {
   useDataViewFilters,
   useDataViewPagination,
@@ -63,7 +62,7 @@ export function useSortedPaginated<T, K extends string>(
     [sorted, page, perPage],
   );
 
-  const buildColumns = (labels: Record<K, string>): DataViewTh[] =>
+  const buildColumns = (labels: Record<K, string>) =>
     columnKeys.map((key, idx) =>
       unsortable?.includes(key)
         ? labels[key]

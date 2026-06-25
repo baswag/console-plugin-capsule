@@ -40,10 +40,10 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
 
   const strokeColor =
     pct > 90
-      ? 'var(--pf-v5-global--danger-color--100)'
+      ? 'var(--pf-t--global--color--status--danger--default)'
       : pct > 70
-        ? 'var(--pf-v5-global--warning-color--100)'
-        : 'var(--pf-v5-global--info-color--100)';
+        ? 'var(--pf-t--global--color--status--warning--default)'
+        : 'var(--pf-t--global--color--status--info--default)';
 
   const count = isCountResource(resource);
   const centerLabel = count ? `${used ?? '0'} of ${hard ?? '0'}` : `${pct} %`;
@@ -59,7 +59,7 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
             r={r}
             style={{
               fill: 'none',
-              stroke: 'var(--pf-v5-global--BorderColor--100)',
+              stroke: 'var(--pf-t--global--border--color--default)',
               strokeWidth: `${strokeWidth}`,
             }}
           />

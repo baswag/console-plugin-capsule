@@ -26,12 +26,12 @@
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.5",
     "@kubernetes/client-node": "^1.4.0",
-    "@openshift-console/dynamic-plugin-sdk": "4.18-latest",
-    "@openshift-console/dynamic-plugin-sdk-webpack": "4.18-latest",
-    "@patternfly/react-core": "^5.4.14",
-    "@patternfly/react-data-view": "^5.8.1",
-    "@patternfly/react-icons": "^5.4.2",
-    "@patternfly/react-table": "^5.4.16",
+    "@openshift-console/dynamic-plugin-sdk": "4.20-latest",
+    "@openshift-console/dynamic-plugin-sdk-webpack": "4.20-latest",
+    "@patternfly/react-core": "^6.2.2",
+    "@patternfly/react-data-view": "^6.5.0",
+    "@patternfly/react-icons": "^6.2.2",
+    "@patternfly/react-table": "^6.2.2",
     "@playwright/browser-chromium": "^1.60.0",
     "@playwright/test": "^1.60.0",
     "@swc/core": "^1.15.33",
@@ -68,7 +68,7 @@
     "prettier-stylelint": "^0.4.2",
     "react": "^17.0.2",
     "react-dom": "^18.3.1",
-    "react-i18next": "~11.7.4",
+    "react-i18next": "^11.12.0",
     "style-loader": "^4.0.0",
     "stylelint": "^17.11.1",
     "stylelint-config-standard": "^40.0.0",
@@ -99,7 +99,7 @@
       "TenantResourcePage": "./components/TenantResourcePage"
     },
     "dependencies": {
-      "@console/pluginAPI": "^4.18.0"
+      "@console/pluginAPI": "^4.20.0"
     },
     "proxy": {
       "alias": "capsule",
