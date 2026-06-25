@@ -17,10 +17,11 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { TrashIcon } from '@patternfly/react-icons';
+import { TrashIcon, PencilAltIcon } from '@patternfly/react-icons';
 import type { ResourcePool, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
-import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
+import { addQuantity, CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
+import EditResourcePoolClaimModal from './EditResourcePoolClaimModal';
 import './ResourcePoolDetailPage.css';
 import { UsageGauge } from '../utils/common';
 import type { DataViewTr } from '@patternfly/react-data-view';
@@ -38,6 +39,10 @@ function formatQuantity(q: ResourceQuantity | undefined): string {
   return Object.entries(q)
     .map(([k, v]) => `${k}: ${v}`)
     .join(', ');
+}
+
+function getClaimBoundStatus(claim: ResourcePoolClaim) {
+  return claim.status?.conditions.find((x) => x.type === 'Bound')?.status ?? '-';
 }
 
 const COLUMN_KEYS = ['name', 'namespace', 'requested', 'status', 'created'] as const;
@@ -80,6 +85,7 @@ export default function ResourcePoolDetailPage() {
   const [claimToDelete, setClaimToDelete] = useState<ResourcePoolClaim | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [claimToEdit, setClaimToEdit] = useState<ResourcePoolClaim | null>(null);
 
   const handleDeleteClaim = () => {
     if (!claimToDelete) return;
@@ -113,6 +119,14 @@ export default function ResourcePoolDetailPage() {
         setPoolLoaded(true);
       });
   }, [name, t]);
+
+  useEffect(() => {
+    if (!name || refreshToken === 0) return;
+    resourcePoolsApi
+      .fetch({ name })
+      .then((data: ResourcePool) => setPool(data))
+      .catch(() => {});
+  }, [name, refreshToken]);
 
   useEffect(() => {
     if (!name) return;
@@ -169,7 +183,7 @@ export default function ResourcePoolDetailPage() {
     name: t('Name'),
     namespace: t('Namespace'),
     requested: t('Requested'),
-    status: t('Status'),
+    status: t('Bound'),
     created: t('Created'),
   };
 
@@ -189,8 +203,19 @@ export default function ResourcePoolDetailPage() {
     </Button>,
     claim.metadata.namespace,
     formatQuantity(claim.spec.claim),
-    claim.status?.condition?.message ?? '—',
+    getClaimBoundStatus(claim),
     <Timestamp timestamp={claim.metadata.creationTimestamp} />,
+    getClaimBoundStatus(claim) !== 'True' ? (
+      <Button
+        variant="plain"
+        aria-label={t('Edit {{name}}', { name: claim.metadata.name })}
+        onClick={() => {
+          setClaimToEdit(claim);
+        }}
+      >
+        <PencilAltIcon />
+      </Button>
+    ) : undefined,
     <Button
       variant="plain"
       aria-label={t('Delete {{name}}', { name: claim.metadata.name })}
@@ -331,6 +356,29 @@ export default function ResourcePoolDetailPage() {
         </Modal>
       )}
 
+      {claimToEdit &&
+        (() => {
+          const effectiveAvailable = available ?? hard;
+          const claimEditMaxHard: ResourceQuantity = Object.fromEntries(
+            Object.keys(effectiveAvailable).map((r) => [
+              r,
+              addQuantity(effectiveAvailable[r], claimToEdit.spec.claim[r]),
+            ]),
+          );
+          return (
+            <EditResourcePoolClaimModal
+              claim={claimToEdit}
+              poolHard={claimEditMaxHard}
+              onClose={() => {
+                setClaimToEdit(null);
+              }}
+              onEdited={() => {
+                setClaimToEdit(null);
+                setRefreshToken((n) => n + 1);
+              }}
+            />
+          );
+        })()}
       {claimModalOpen && pool && (
         <CreateResourcePoolClaimModal
           poolName={pool.metadata.name}

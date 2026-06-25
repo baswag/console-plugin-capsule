@@ -20,11 +20,16 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import type { ResourcePoolClaim } from '../utils/capsule';
-import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
+import type { ResourcePool, ResourcePoolClaim, ResourceQuantity } from '../utils/capsule';
+import { addQuantity, CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import './ResourcePoolDetailPage.css';
 import type { V1ResourceQuota } from '@kubernetes/client-node';
 import { UsageGauge } from '../utils/common';
+import EditResourcePoolClaimModal from './EditResourcePoolClaimModal';
+
+function getClaimBoundStatus(claim: ResourcePoolClaim | null) {
+  return claim?.status?.conditions.find((x) => x.type === 'Bound')?.status ?? '-';
+}
 
 export default function ResourcePoolClaimDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
@@ -35,6 +40,8 @@ export default function ResourcePoolClaimDetailPage() {
     CAPSULE_APIS.RESOURCE_POOL_CLAIMS,
   );
 
+  const resourcePoolsApi = new CapsuleClient<ResourcePool>(CAPSULE_APIS.RESOURCE_POOLS);
+
   const resourceQuotasApi = new CapsuleClient<V1ResourceQuota>({
     apiGroup: '',
     apiVersion: 'v1',
@@ -44,9 +51,12 @@ export default function ResourcePoolClaimDetailPage() {
 
   const [claim, setClaim] = useState<ResourcePoolClaim | null>(null);
   const [quota, setQuota] = useState<V1ResourceQuota | null>(null);
+  const [poolAvailable, setPoolAvailable] = useState<ResourceQuantity>({});
+  const [poolAllResources, setPoolAllResources] = useState<ResourceQuantity>({});
   const [claimLoaded, setClaimLoaded] = useState(false);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimRefreshToken, setClaimRefreshToken] = useState(0);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -57,6 +67,15 @@ export default function ResourcePoolClaimDetailPage() {
     namespace: namespace ?? '',
     verb: 'delete',
   });
+
+  const [canUpdateClaim] = useAccessReview({
+    group: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiGroup,
+    resource: CAPSULE_APIS.RESOURCE_POOL_CLAIMS.apiKind,
+    namespace: namespace ?? '',
+    verb: 'update',
+  });
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const handleDelete = () => {
     if (!namespace || !name) return;
@@ -87,13 +106,13 @@ export default function ResourcePoolClaimDetailPage() {
         setClaimError(e.message ?? t('Failed to fetch claim'));
         setClaimLoaded(true);
       });
-  }, [namespace, name, t]);
+  }, [namespace, name, t, claimRefreshToken]);
 
   useEffect(() => {
-    if (!namespace || !name) return;
+    if (!namespace || !claim) return;
     setQuotaLoaded(false);
     resourceQuotasApi
-      .fetch({ name, namespace })
+      .fetch({ name: `capsule-pool-${claim.status?.pool.name}`, namespace })
       .then((data: V1ResourceQuota) => {
         setQuota(data);
         setQuotaLoaded(true);
@@ -101,7 +120,20 @@ export default function ResourcePoolClaimDetailPage() {
       .catch(() => {
         setQuotaLoaded(true);
       });
-  }, [namespace, name]);
+  }, [namespace, claim]);
+
+  useEffect(() => {
+    if (!claim?.spec.pool) return;
+    resourcePoolsApi
+      .fetch({ name: claim.spec.pool })
+      .then((data: ResourcePool) => {
+        setPoolAvailable(
+          data.status?.allocation?.available ?? data.status?.allocation?.hard ?? data.spec.hard,
+        );
+        setPoolAllResources(data.status?.allocation?.hard ?? data.spec.hard);
+      })
+      .catch(() => {});
+  }, [claim?.spec.pool, claimRefreshToken]);
 
   if (!claimLoaded) {
     return (
@@ -124,10 +156,28 @@ export default function ResourcePoolClaimDetailPage() {
   const hard = quota?.status?.hard ?? claim?.spec.claim ?? {};
   const used = quota?.status?.used ?? {};
 
+  const resourceKeys =
+    Object.keys(poolAllResources).length > 0
+      ? Object.keys(poolAllResources)
+      : Object.keys(claim?.spec.claim ?? {});
+  const maxHard: ResourceQuantity = Object.fromEntries(
+    resourceKeys.map((r) => [r, addQuantity(poolAvailable[r], claim?.spec.claim[r])]),
+  );
+
   return (
     <>
       <DocumentTitle>{t('ResourcePoolClaim: {{name}}', { name })}</DocumentTitle>
       <ListPageHeader title={`${t('ResourcePoolClaim')}: ${name}`}>
+        {canUpdateClaim && claim && getClaimBoundStatus(claim) !== 'True' && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setEditModalOpen(true);
+            }}
+          >
+            {t('Edit')}
+          </Button>
+        )}
         {canDeleteClaim && (
           <Button
             variant="danger"
@@ -193,10 +243,8 @@ export default function ResourcePoolClaimDetailPage() {
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
-            <DescriptionListTerm>{t('Status')}</DescriptionListTerm>
-            <DescriptionListDescription>
-              {claim?.status?.condition?.message ?? '—'}
-            </DescriptionListDescription>
+            <DescriptionListTerm>{t('Bound')}</DescriptionListTerm>
+            <DescriptionListDescription>{getClaimBoundStatus(claim)}</DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
             <DescriptionListTerm>{t('Created')}</DescriptionListTerm>
@@ -210,6 +258,19 @@ export default function ResourcePoolClaimDetailPage() {
           </DescriptionListGroup>
         </DescriptionList>
       </PageSection>
+      {editModalOpen && claim && (
+        <EditResourcePoolClaimModal
+          claim={claim}
+          poolHard={maxHard}
+          onClose={() => {
+            setEditModalOpen(false);
+          }}
+          onEdited={() => {
+            setEditModalOpen(false);
+            setClaimRefreshToken((n) => n + 1);
+          }}
+        />
+      )}
       {deleteModalOpen && (
         <Modal
           isOpen

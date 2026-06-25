@@ -186,6 +186,24 @@ export interface Tenant {
 
 export type ResourceQuantity = Record<string, string>;
 
+export function addQuantity(a: string | undefined, b: string | undefined): string {
+  if (!a) return b ?? '0';
+  if (!b || b === '0') return a;
+  const milliRe = /^(\d+(?:\.\d+)?)m$/;
+  const binaryRe = /^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei)$/;
+  const plainRe = /^(\d+(?:\.\d+)?)$/;
+  const am = a.match(milliRe),
+    bm = b.match(milliRe);
+  const ab = a.match(binaryRe),
+    bb = b.match(binaryRe);
+  const ap = a.match(plainRe),
+    bp = b.match(plainRe);
+  if (am && bm) return `${parseFloat(am[1]) + parseFloat(bm[1])}m`;
+  if (ab && bb && ab[2] === bb[2]) return `${parseFloat(ab[1]) + parseFloat(bb[1])}${ab[2]}`;
+  if (ap && bp) return String(parseFloat(ap[1]) + parseFloat(bp[1]));
+  return a;
+}
+
 export interface ResourcePool {
   metadata: V1ObjectMetaString;
   spec: {
@@ -210,10 +228,18 @@ export interface ResourcePoolClaim {
     claim: ResourceQuantity;
   };
   status?: {
-    hard?: ResourceQuantity;
-    condition: {
-      message: string;
+    pool: {
+      name: string;
+      uid: string;
     };
+    conditions: {
+      message: string;
+      reason: string;
+      status: 'True' | 'False';
+      type: string;
+      lastTransitionTime: string;
+      observedGeneration: number;
+    }[];
   };
 }
 
