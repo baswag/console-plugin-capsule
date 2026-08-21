@@ -1,0 +1,15 @@
+global:
+  jobs:
+    kubectl:
+      podSecurityContext:
+        enabled: false
+      securityContext:
+        enabled: false
+proxy:
+  enabled: true
+
+manager:
+  options:
+    administrators:
+      - kind: "User"
+        name: "kubeadmin"

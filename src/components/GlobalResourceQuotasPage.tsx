@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import {
-  ListPageHeader,
-  Timestamp,
-  useAccessReview,
-  DocumentTitle,
-} from '@openshift-console/dynamic-plugin-sdk';
-import { Button, Pagination, Spinner } from '@patternfly/react-core';
+import { ListPageHeader, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
+import { Button, Label, Pagination, Spinner } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import type { DataViewTr } from '@patternfly/react-data-view';
 import {
@@ -17,43 +12,45 @@ import {
   DataViewTextFilter,
   DataViewToolbar,
 } from '@patternfly/react-data-view';
-import type { Tenant } from '../utils/capsule';
+import type { GlobalResourceQuota } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
+import { readyConditionStatus } from '../utils/common';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
-const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
-type ColumnKey = (typeof COLUMN_KEYS)[number];
-const UNSORTABLE: ColumnKey[] = ['owners'];
+const globalResourceQuotasApi = new CapsuleClient<GlobalResourceQuota>(
+  CAPSULE_APIS.GLOBAL_RESOURCE_QUOTAS,
+);
 
-const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
+const COLUMN_KEYS = ['name', 'namespaces', 'ready', 'created'] as const;
+type ColumnKey = (typeof COLUMN_KEYS)[number];
+const UNSORTABLE: ColumnKey[] = ['ready'];
+
+const getSortValue = (grq: GlobalResourceQuota, key: ColumnKey): string | number => {
   switch (key) {
     case 'name':
-      return tenant.metadata.name;
-    case 'state':
-      return tenant.status?.state ?? '';
-    case 'namespaceCount':
-      return tenant.status?.size ?? tenant.status?.namespaces?.length ?? 0;
+      return grq.metadata.name;
+    case 'namespaces':
+      return grq.status?.namespaceCount ?? grq.status?.namespaces?.length ?? 0;
     case 'created':
-      return tenant.metadata.creationTimestamp;
+      return grq.metadata.creationTimestamp;
     default:
       return '';
   }
 };
 
-export default function TenantsPage() {
+function ReadyLabel({ grq }: { grq: GlobalResourceQuota }) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
+  const status = readyConditionStatus(grq.status?.conditions);
+  if (status === 'True') return <Label color="green">{t('Ready')}</Label>;
+  if (status === 'False') return <Label color="red">{t('Not Ready')}</Label>;
+  return <Label color="grey">{t('Unknown')}</Label>;
+}
 
-  const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
-
+export default function GlobalResourceQuotasPage() {
+  const { t } = useTranslation('plugin__console-plugin-capsule');
   const navigate = useNavigate();
 
-  const [canCreate] = useAccessReview({
-    group: CAPSULE_APIS.TENANTS.apiGroup,
-    resource: CAPSULE_APIS.TENANTS.apiKind,
-    verb: 'create',
-  });
-
-  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [quotas, setQuotas] = useState<GlobalResourceQuota[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -61,47 +58,45 @@ export default function TenantsPage() {
   useEffect(() => {
     setLoaded(false);
     setLoadError(null);
-    tenantApi
+    globalResourceQuotasApi
       .fetch()
       .then((data) => {
-        setTenants(data.items ?? []);
+        setQuotas(data.items ?? []);
         setLoaded(true);
       })
       .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch tenants'));
+        setLoadError(e.message ?? t('Failed to fetch GlobalResourceQuotas'));
         setLoaded(true);
       });
   }, [t, refreshToken]);
 
-  const { filtered, filters, onSetFilters } = useNameFilter(tenants);
+  const { filtered, filters, onSetFilters } = useNameFilter(quotas);
   const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
     useSortedPaginated(filtered, COLUMN_KEYS, getSortValue, UNSORTABLE);
 
   const columnLabels: Record<ColumnKey, string> = {
     name: t('Name'),
-    state: t('State'),
-    namespaceCount: t('Namespace count'),
-    owners: t('Owners'),
+    namespaces: t('Namespaces'),
+    ready: t('Ready'),
     created: t('Created'),
   };
 
   const columns = buildColumns(columnLabels);
 
-  const rows: DataViewTr[] = paginated.map((tenant) => [
+  const rows: DataViewTr[] = paginated.map((grq) => [
     <Button
       key="name"
       variant="link"
       isInline
       onClick={() => {
-        navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`);
+        navigate(`/capsule-global-resource-quotas/${grq.metadata.name}`);
       }}
     >
-      {tenant.metadata.name}
+      {grq.metadata.name}
     </Button>,
-    tenant.status?.state ?? '—',
-    String(tenant.status?.size ?? tenant.status?.namespaces?.length ?? 0),
-    (tenant.spec.owners ?? []).map((o) => `${o.name} (${o.kind})`).join(', ') || '—',
-    <Timestamp key="ts" timestamp={tenant.metadata.creationTimestamp} />,
+    grq.status?.namespaceCount ?? grq.status?.namespaces?.length ?? 0,
+    <ReadyLabel key="ready" grq={grq} />,
+    <Timestamp key="ts" timestamp={grq.metadata.creationTimestamp} />,
   ]);
 
   const activeState = !loaded
@@ -114,8 +109,8 @@ export default function TenantsPage() {
 
   return (
     <>
-      <DocumentTitle>{t('Tenants')}</DocumentTitle>
-      <ListPageHeader title={t('Tenants')}>
+      <DocumentTitle>{t('Global Resource Quotas')}</DocumentTitle>
+      <ListPageHeader title={t('Global Resource Quotas')}>
         <Button
           variant="plain"
           aria-label={t('Refresh')}
@@ -125,16 +120,6 @@ export default function TenantsPage() {
         >
           <SyncAltIcon />
         </Button>
-        {canCreate && (
-          <Button
-            variant="primary"
-            onClick={() => {
-              navigate(tenantApi.getCreateUrl());
-            }}
-          >
-            {t('Create Tenant')}
-          </Button>
-        )}
       </ListPageHeader>
       <DataView activeState={activeState}>
         <DataViewToolbar
@@ -163,9 +148,9 @@ export default function TenantsPage() {
           columns={columns}
           rows={rows}
           bodyStates={{
-            [DataViewState.loading]: <Spinner aria-label={t('Loading tenants')} />,
+            [DataViewState.loading]: <Spinner aria-label={t('Loading GlobalResourceQuotas')} />,
             [DataViewState.error]: <>{loadError}</>,
-            [DataViewState.empty]: <>{t('No tenants found.')}</>,
+            [DataViewState.empty]: <>{t('No GlobalResourceQuotas found.')}</>,
           }}
         />
       </DataView>

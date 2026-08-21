@@ -55,24 +55,24 @@
     "type": "console.page/route",
     "properties": {
       "exact": true,
-      "path": "/capsule-resource-pools",
-      "component": { "$codeRef": "ResourcePoolsPage" }
+      "path": "/capsule-global-resource-quotas",
+      "component": { "$codeRef": "GlobalResourceQuotasPage" }
     }
   },
   {
     "type": "console.page/route",
     "properties": {
       "exact": true,
-      "path": "/capsule-resource-pools/:name",
-      "component": { "$codeRef": "ResourcePoolDetailPage" }
+      "path": "/capsule-global-resource-quotas/:name",
+      "component": { "$codeRef": "GlobalResourceQuotaDetailPage" }
     }
   },
   {
     "type": "console.navigation/href",
     "properties": {
-      "id": "capsule-resource-pools",
-      "name": "%plugin__console-plugin-capsule~Resource Pools%",
-      "href": "/capsule-resource-pools",
+      "id": "capsule-global-resource-quotas",
+      "name": "%plugin__console-plugin-capsule~Global Resource Quotas%",
+      "href": "/capsule-global-resource-quotas",
       "perspective": "admin",
       "section": "capsule"
     }

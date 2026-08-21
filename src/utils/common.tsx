@@ -1,3 +1,18 @@
+import type { GlobalResourceQuotaCondition, ResourceQuantity } from './capsule';
+
+export function formatQuantity(q: ResourceQuantity | undefined): string {
+  if (!q) return '—';
+  return Object.entries(q)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(', ');
+}
+
+export function readyConditionStatus(
+  conditions: GlobalResourceQuotaCondition[] | undefined,
+): GlobalResourceQuotaCondition['status'] | undefined {
+  return conditions?.find((c) => c.type === 'Ready')?.status;
+}
+
 export interface UsageGaugeProps {
   resource: string;
   used: string | undefined;
@@ -46,7 +61,7 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
         : 'var(--pf-t--global--color--status--info--default)';
 
   const count = isCountResource(resource);
-  const centerLabel = count ? `${used ?? '0'} of ${hard ?? '0'}` : `${pct} %`;
+  const centerLabel = count ? `${used ?? '0'} of ${hard ?? '0'}` : `${pct} %`;
 
   return (
     <div className="console-plugin-capsule__gauge">

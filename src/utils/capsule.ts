@@ -147,16 +147,10 @@ export const CAPSULE_APIS = {
     apiKindSingle: 'Tenant',
     apiVersion: 'v1beta2',
   },
-  RESOURCE_POOLS: {
+  GLOBAL_RESOURCE_QUOTAS: {
     apiGroup: CAPSULE_API_GROUP,
-    apiKind: 'resourcepools',
-    apiKindSingle: 'ResourcePool',
-    apiVersion: 'v1beta2',
-  },
-  RESOURCE_POOL_CLAIMS: {
-    apiGroup: CAPSULE_API_GROUP,
-    apiKind: 'resourcepoolclaims',
-    apiKindSingle: 'ResourcePoolClaim',
+    apiKind: 'globalresourcequotas',
+    apiKindSingle: 'GlobalResourceQuota',
     apiVersion: 'v1beta2',
   },
   TENANT_RESOURCES: {
@@ -192,54 +186,55 @@ export function addQuantity(a: string | undefined, b: string | undefined): strin
   const milliRe = /^(\d+(?:\.\d+)?)m$/;
   const binaryRe = /^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei)$/;
   const plainRe = /^(\d+(?:\.\d+)?)$/;
-  const am = a.match(milliRe),
-    bm = b.match(milliRe);
-  const ab = a.match(binaryRe),
-    bb = b.match(binaryRe);
-  const ap = a.match(plainRe),
-    bp = b.match(plainRe);
+  const am = milliRe.exec(a),
+    bm = milliRe.exec(b);
+  const ab = binaryRe.exec(a),
+    bb = binaryRe.exec(b);
+  const ap = plainRe.exec(a),
+    bp = plainRe.exec(b);
   if (am && bm) return `${parseFloat(am[1]) + parseFloat(bm[1])}m`;
-  if (ab && bb && ab[2] === bb[2]) return `${parseFloat(ab[1]) + parseFloat(bb[1])}${ab[2]}`;
+  if (ab && ab[2] === bb?.[2]) return `${parseFloat(ab[1]) + parseFloat(bb[1])}${ab[2]}`;
   if (ap && bp) return String(parseFloat(ap[1]) + parseFloat(bp[1]));
   return a;
 }
 
-export interface ResourcePool {
-  metadata: V1ObjectMetaString;
-  spec: {
-    hard: ResourceQuantity;
-    selectors?: {
-      matchLabels?: Record<string, string>;
-    }[];
-  };
-  status?: {
-    allocation?: {
-      available?: ResourceQuantity;
-      hard?: ResourceQuantity;
-      used?: ResourceQuantity;
-    };
-  };
+export interface GlobalResourceQuotaCondition {
+  type: string;
+  status: 'True' | 'False' | 'Unknown';
+  reason: string;
+  message: string;
+  lastTransitionTime: string;
+  observedGeneration?: number;
 }
 
-export interface ResourcePoolClaim {
+export interface GlobalResourceQuota {
   metadata: V1ObjectMetaString;
   spec: {
-    pool: string;
-    claim: ResourceQuantity;
+    namespaceSelectors?: {
+      matchLabels?: Record<string, string>;
+      matchExpressions?: {
+        key: string;
+        operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist';
+        values?: string[];
+      }[];
+    }[];
+    quota: {
+      hard: ResourceQuantity;
+      scopeSelector?: unknown;
+      scopes?: string[];
+    };
   };
   status?: {
-    pool: {
-      name: string;
-      uid: string;
+    namespaces?: string[];
+    namespaceCount?: number;
+    namespaceUsage?: Record<string, { used?: ResourceQuantity }>;
+    total: {
+      hard?: ResourceQuantity;
+      used?: ResourceQuantity;
+      available?: ResourceQuantity;
     };
-    conditions: {
-      message: string;
-      reason: string;
-      status: 'True' | 'False';
-      type: string;
-      lastTransitionTime: string;
-      observedGeneration: number;
-    }[];
+    conditions: GlobalResourceQuotaCondition[];
+    observedGeneration?: number;
   };
 }
 

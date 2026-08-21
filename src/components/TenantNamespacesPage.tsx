@@ -91,7 +91,13 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
         </Button>
       )}
       {deleteOpen && (
-        <Modal isOpen onClose={() => setDeleteOpen(false)} variant="small">
+        <Modal
+          isOpen
+          onClose={() => {
+            setDeleteOpen(false);
+          }}
+          variant="small"
+        >
           <ModalHeader title={t('Delete Namespace')} />
           <ModalBody>
             {deleteError && (
@@ -104,10 +110,21 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
             })}
           </ModalBody>
           <ModalFooter>
-            <Button variant="danger" onClick={deleteNamespace} isDisabled={deleting} isLoading={deleting}>
+            <Button
+              variant="danger"
+              onClick={deleteNamespace}
+              isDisabled={deleting}
+              isLoading={deleting}
+            >
               {t('Delete')}
             </Button>
-            <Button variant="link" onClick={() => setDeleteOpen(false)} isDisabled={deleting}>
+            <Button
+              variant="link"
+              onClick={() => {
+                setDeleteOpen(false);
+              }}
+              isDisabled={deleting}
+            >
               {t('Cancel')}
             </Button>
           </ModalFooter>
@@ -263,7 +280,13 @@ export default function TenantNamespacesPage() {
     <>
       <DocumentTitle>{t('Tenant Namespaces')}</DocumentTitle>
       <ListPageHeader title={t('Tenant Namespaces')}>
-        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+        <Button
+          variant="plain"
+          aria-label={t('Refresh')}
+          onClick={() => {
+            setRefreshToken((n) => n + 1);
+          }}
+        >
           <SyncAltIcon />
         </Button>
       </ListPageHeader>

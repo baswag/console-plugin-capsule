@@ -2,7 +2,12 @@ import type { RefObject } from 'react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import { ListPageHeader, Timestamp, useAccessReview, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
+import {
+  ListPageHeader,
+  Timestamp,
+  useAccessReview,
+  DocumentTitle,
+} from '@openshift-console/dynamic-plugin-sdk';
 import {
   Button,
   MenuToggle,
@@ -190,7 +195,13 @@ export default function TenantResourcePage() {
     <>
       <DocumentTitle>{t('Tenant Resources')}</DocumentTitle>
       <ListPageHeader title={t('Tenant Resources')}>
-        <Button variant="plain" aria-label={t('Refresh')} onClick={() => setRefreshToken((n) => n + 1)}>
+        <Button
+          variant="plain"
+          aria-label={t('Refresh')}
+          onClick={() => {
+            setRefreshToken((n) => n + 1);
+          }}
+        >
           <SyncAltIcon />
         </Button>
         {canCreate && selectedNamespace && (

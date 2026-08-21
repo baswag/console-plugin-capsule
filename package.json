@@ -93,8 +93,8 @@
     "exposedModules": {
       "TenantsPage": "./components/TenantsPage",
       "TenantNamespacesPage": "./components/TenantNamespacesPage",
-      "ResourcePoolsPage": "./components/ResourcePoolsPage",
-      "ResourcePoolDetailPage": "./components/ResourcePoolDetailPage",
+      "GlobalResourceQuotasPage": "./components/GlobalResourceQuotasPage",
+      "GlobalResourceQuotaDetailPage": "./components/GlobalResourceQuotaDetailPage",
       "TenantNamespaceDetailPage": "./components/TenantNamespaceDetailPage",
       "TenantResourcePage": "./components/TenantResourcePage"
     },

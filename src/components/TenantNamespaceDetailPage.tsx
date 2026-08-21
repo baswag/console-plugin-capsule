@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom-v5-compat';
+import { useNavigate, useParams } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
-import { ListPageHeader, ResourceLink, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
+import {
+  ListPageHeader,
+  ResourceLink,
+  Timestamp,
+  DocumentTitle,
+} from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
   Button,
@@ -30,13 +35,10 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { CapsuleClient, CAPSULE_APIS } from '../utils/capsule';
-import type { ResourcePool, ResourcePoolClaim } from '../utils/capsule';
+import type { GlobalResourceQuota } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
-import type { V1ResourceQuota } from '@kubernetes/client-node';
 import { UsageGauge } from '../utils/common';
-import { ResourcePoolClaimsTable } from './ResourcePoolClaimsTable';
-import CreateResourcePoolClaimModal from './CreateResourcePoolClaimModal';
-import './ResourcePoolDetailPage.css';
+import './Gauges.css';
 
 const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
   apiGroup: '',
@@ -45,17 +47,8 @@ const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
   apiKindSingle: 'Namespace',
 });
 
-const resourceQuotasApi = new CapsuleClient<V1ResourceQuota>({
-  apiGroup: '',
-  apiVersion: 'v1',
-  apiKind: 'resourcequotas',
-  apiKindSingle: 'ResourceQuota',
-});
-
-const resourcePoolsApi = new CapsuleClient<ResourcePool>(CAPSULE_APIS.RESOURCE_POOLS);
-
-const resourcePoolClaimsApi = new CapsuleClient<ResourcePoolClaim>(
-  CAPSULE_APIS.RESOURCE_POOL_CLAIMS,
+const globalResourceQuotasApi = new CapsuleClient<GlobalResourceQuota>(
+  CAPSULE_APIS.GLOBAL_RESOURCE_QUOTAS,
 );
 
 const HIDDEN_ANNOTATION_KEYS = ['kubectl.kubernetes.io/last-applied-configuration'];
@@ -110,11 +103,9 @@ interface EditLabelsModalProps {
 
 function EditLabelsModal({ namespace, onClose, onSaved }: EditLabelsModalProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
-  const name = namespace.metadata.name!;
+  const name = namespace.metadata.name;
 
-  const [labels, setLabels] = useState<string[]>(() =>
-    labelsToStrings(namespace.metadata?.labels),
-  );
+  const [labels, setLabels] = useState<string[]>(() => labelsToStrings(namespace.metadata?.labels));
   const [inputValue, setInputValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,7 +144,9 @@ function EditLabelsModal({ namespace, onClose, onSaved }: EditLabelsModalProps) 
 
     namespacesApiClient
       .patch(name, { metadata: { labels: labelPatch } })
-      .then((updated) => onSaved(updated))
+      .then((updated) => {
+        onSaved(updated);
+      })
       .catch((e: Error) => {
         setError(e.message ?? t('Failed to save labels'));
         setSaving(false);
@@ -182,13 +175,20 @@ function EditLabelsModal({ namespace, onClose, onSaved }: EditLabelsModalProps) 
         <TextInputGroup style={{ marginTop: '0.5rem' }}>
           <TextInputGroupMain
             value={inputValue}
-            onChange={(_e, val) => setInputValue(val)}
+            onChange={(_e, val) => {
+              setInputValue(val);
+            }}
             onKeyDown={handleKeyDown}
             placeholder={labels.length === 0 ? 'app=frontend' : undefined}
           >
             <LabelGroup>
               {labels.map((label) => (
-                <Label key={label} onClose={() => removeLabel(label)}>
+                <Label
+                  key={label}
+                  onClose={() => {
+                    removeLabel(label);
+                  }}
+                >
                   {label}
                 </Label>
               ))}
@@ -218,10 +218,15 @@ interface KeyValueEditorProps {
 function KeyValueEditor({ rows, onChange, idPrefix }: KeyValueEditorProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
 
-  const addRow = () => onChange([...rows, { id: nextId(), key: '', value: '' }]);
-  const removeRow = (id: number) => onChange(rows.filter((r) => r.id !== id));
-  const updateRow = (id: number, field: 'key' | 'value', val: string) =>
+  const addRow = () => {
+    onChange([...rows, { id: nextId(), key: '', value: '' }]);
+  };
+  const removeRow = (id: number) => {
+    onChange(rows.filter((r) => r.id !== id));
+  };
+  const updateRow = (id: number, field: 'key' | 'value', val: string) => {
     onChange(rows.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
+  };
 
   return (
     <div>
@@ -233,7 +238,9 @@ function KeyValueEditor({ rows, onChange, idPrefix }: KeyValueEditorProps) {
               aria-label={t('Key')}
               placeholder={t('Key')}
               value={row.key}
-              onChange={(_e, val) => updateRow(row.id, 'key', val)}
+              onChange={(_e, val) => {
+                updateRow(row.id, 'key', val);
+              }}
             />
           </GridItem>
           <GridItem span={6}>
@@ -242,11 +249,19 @@ function KeyValueEditor({ rows, onChange, idPrefix }: KeyValueEditorProps) {
               aria-label={t('Value')}
               placeholder={t('Value')}
               value={row.value}
-              onChange={(_e, val) => updateRow(row.id, 'value', val)}
+              onChange={(_e, val) => {
+                updateRow(row.id, 'value', val);
+              }}
             />
           </GridItem>
           <GridItem span={1}>
-            <Button variant="plain" aria-label={t('Remove')} onClick={() => removeRow(row.id)}>
+            <Button
+              variant="plain"
+              aria-label={t('Remove')}
+              onClick={() => {
+                removeRow(row.id);
+              }}
+            >
               <MinusCircleIcon />
             </Button>
           </GridItem>
@@ -268,7 +283,7 @@ interface EditAnnotationsModalProps {
 
 function EditAnnotationsModal({ namespace, onClose, onSaved }: EditAnnotationsModalProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
-  const name = namespace.metadata.name!;
+  const name = namespace.metadata.name;
 
   const [rows, setRows] = useState<KVRow[]>(() =>
     toRows(namespace.metadata?.annotations, HIDDEN_ANNOTATION_KEYS),
@@ -297,7 +312,9 @@ function EditAnnotationsModal({ namespace, onClose, onSaved }: EditAnnotationsMo
       .patch(name, {
         metadata: { annotations: { ...annotationPatch, ...hiddenAnnotations } },
       })
-      .then((updated) => onSaved(updated))
+      .then((updated) => {
+        onSaved(updated);
+      })
       .catch((e: Error) => {
         setError(e.message ?? t('Failed to save annotations'));
         setSaving(false);
@@ -331,6 +348,7 @@ function EditAnnotationsModal({ namespace, onClose, onSaved }: EditAnnotationsMo
 export default function TenantNamespaceDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const { name } = useParams<{ name: string }>();
+  const navigate = useNavigate();
 
   const [namespace, setNamespace] = useState<V1NamespaceString | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -339,20 +357,11 @@ export default function TenantNamespaceDetailPage() {
   const [openModal, setOpenModal] = useState<'labels' | 'annotations' | null>(null);
 
   // Quotas section state
-  const [quotaNames, setQuotaNames] = useState<string[]>([]);
-  const [quotasLoaded, setQuotasLoaded] = useState(false);
-  const [quotaSelectOpen, setQuotaSelectOpen] = useState(false);
-  const [selectedQuotaName, setSelectedQuotaName] = useState('');
-  // Individually fetched quota (has status.hard/used populated)
-  const [selectedQuota, setSelectedQuota] = useState<V1ResourceQuota | null>(null);
-  const [quotaLoaded, setQuotaLoaded] = useState(false);
-  const [pool, setPool] = useState<ResourcePool | null>(null);
-  const [poolName, setPoolName] = useState<string | null>(null);
-  const [poolLoaded, setPoolLoaded] = useState(false);
-  const [claims, setClaims] = useState<ResourcePoolClaim[]>([]);
-  const [claimsLoaded, setClaimsLoaded] = useState(false);
-  const [claimsError, setClaimsError] = useState<string | null>(null);
-  const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [matchingGrqs, setMatchingGrqs] = useState<GlobalResourceQuota[]>([]);
+  const [grqsLoaded, setGrqsLoaded] = useState(false);
+  const [grqsError, setGrqsError] = useState<string | null>(null);
+  const [grqSelectOpen, setGrqSelectOpen] = useState(false);
+  const [selectedGrqName, setSelectedGrqName] = useState('');
 
   useEffect(() => {
     if (!name) return;
@@ -370,98 +379,29 @@ export default function TenantNamespaceDetailPage() {
       });
   }, [name, t, refreshToken]);
 
-  // List ResourceQuotas to populate the dropdown
+  // Fetch all GlobalResourceQuotas and filter client-side to those matching this namespace
+  // (GRQ is cluster-scoped, so there's no server-side "quotas for namespace X" query).
   useEffect(() => {
     if (!name) return;
-    setQuotasLoaded(false);
-    resourceQuotasApi
-      .fetch({ namespace: name })
-      .then((data) => {
-        const names = (data.items ?? [])
-          .map((q) => q.metadata?.name ?? '')
-          .filter(Boolean);
-        setQuotaNames(names);
-        setQuotasLoaded(true);
-        setSelectedQuotaName((prev) => (!prev && names.length > 0 ? names[0] : prev));
-      })
-      .catch(() => {
-        setQuotasLoaded(true);
-      });
-  }, [name, refreshToken]);
-
-  // Fetch the selected quota individually to get status.hard/used
-  useEffect(() => {
-    if (!name || !selectedQuotaName) {
-      setSelectedQuota(null);
-      setPool(null);
-      setPoolName(null);
-      return;
-    }
-    setQuotaLoaded(false);
-    setSelectedQuota(null);
-    resourceQuotasApi
-      .fetch({ name: selectedQuotaName, namespace: name })
-      .then((data) => {
-        setSelectedQuota(data);
-        setQuotaLoaded(true);
-        // Derive pool from ownerReference
-        const poolRef = data.metadata?.ownerReferences?.find((r) => r.kind === 'ResourcePool');
-        const derivedPoolName =
-          poolRef?.name ??
-          (data.metadata?.name?.startsWith('capsule-pool-')
-            ? data.metadata.name.slice('capsule-pool-'.length)
-            : null);
-        setPoolName(derivedPoolName);
-      })
-      .catch(() => {
-        setQuotaLoaded(true);
-        setPoolName(null);
-      });
-  }, [name, selectedQuotaName, refreshToken]);
-
-  // Fetch the ResourcePool when poolName is known
-  useEffect(() => {
-    if (!poolName) {
-      setPool(null);
-      setPoolLoaded(true);
-      return;
-    }
-    setPoolLoaded(false);
-    resourcePoolsApi
-      .fetch({ name: poolName })
-      .then((data) => {
-        setPool(data);
-        setPoolLoaded(true);
-      })
-      .catch(() => {
-        setPool(null);
-        setPoolLoaded(true);
-      });
-  }, [poolName]);
-
-  // Fetch all claims globally, filter client-side by pool + namespace (matches ResourcePoolDetailPage pattern)
-  useEffect(() => {
-    if (!name || !poolName) {
-      setClaims([]);
-      setClaimsLoaded(true);
-      return;
-    }
-    setClaimsLoaded(false);
-    setClaimsError(null);
-    resourcePoolClaimsApi
+    setGrqsLoaded(false);
+    setGrqsError(null);
+    globalResourceQuotasApi
       .fetch()
       .then((data) => {
-        const filtered = (data.items ?? []).filter(
-          (c) => c.spec.pool === poolName && c.metadata.namespace === name,
+        const matches = (data.items ?? []).filter((g) =>
+          (g.status?.namespaces ?? Object.keys(g.status?.namespaceUsage ?? {})).includes(name),
         );
-        setClaims(filtered);
-        setClaimsLoaded(true);
+        setMatchingGrqs(matches);
+        setGrqsLoaded(true);
+        setSelectedGrqName((prev) =>
+          !prev && matches.length > 0 ? matches[0].metadata.name : prev,
+        );
       })
       .catch((e: Error) => {
-        setClaimsError(e.message ?? t('Failed to fetch claims'));
-        setClaimsLoaded(true);
+        setGrqsError(e.message ?? t('Failed to fetch GlobalResourceQuotas'));
+        setGrqsLoaded(true);
       });
-  }, [name, poolName, refreshToken, t]);
+  }, [name, t, refreshToken]);
 
   if (!loaded) {
     return (
@@ -484,14 +424,10 @@ export default function TenantNamespaceDetailPage() {
   const labelEntries = Object.entries(namespace?.metadata?.labels ?? {});
   const annotationCount = Object.keys(visibleAnnotations(namespace?.metadata?.annotations)).length;
 
-  const quotaHard = (selectedQuota?.status?.hard ?? {}) as Record<string, string>;
-  const quotaUsed = (selectedQuota?.status?.used ?? {}) as Record<string, string>;
-  const tenant = pool?.metadata?.labels?.['capsule.clastix.io/tenant'] ?? '';
-  const poolAvailable =
-    pool?.status?.allocation?.available ??
-    pool?.status?.allocation?.hard ??
-    pool?.spec.hard ??
-    {};
+  const selectedGrq =
+    matchingGrqs.find((g) => g.metadata.name === selectedGrqName) ?? matchingGrqs[0];
+  const grqHard = selectedGrq?.spec.quota.hard ?? {};
+  const grqUsed = (name ? selectedGrq?.status?.namespaceUsage?.[name]?.used : undefined) ?? {};
 
   return (
     <>
@@ -500,7 +436,9 @@ export default function TenantNamespaceDetailPage() {
         <Button
           variant="plain"
           aria-label={t('Refresh')}
-          onClick={() => setRefreshToken((n) => n + 1)}
+          onClick={() => {
+            setRefreshToken((n) => n + 1);
+          }}
         >
           <SyncAltIcon />
         </Button>
@@ -544,10 +482,13 @@ export default function TenantNamespaceDetailPage() {
         <div
           style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}
         >
-          <Content component="h2">
-            {t('Labels')}
-          </Content>
-          <Button variant="link" onClick={() => setOpenModal('labels')}>
+          <Content component="h2">{t('Labels')}</Content>
+          <Button
+            variant="link"
+            onClick={() => {
+              setOpenModal('labels');
+            }}
+          >
             {t('Edit')}
           </Button>
         </div>
@@ -560,7 +501,9 @@ export default function TenantNamespaceDetailPage() {
             ))}
           </LabelGroup>
         ) : (
-          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>{t('No labels')}</span>
+          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+            {t('No labels')}
+          </span>
         )}
 
         <div
@@ -572,10 +515,13 @@ export default function TenantNamespaceDetailPage() {
             marginBottom: '0.5rem',
           }}
         >
-          <Content component="h2">
-            {t('Annotations')}
-          </Content>
-          <Button variant="link" onClick={() => setOpenModal('annotations')}>
+          <Content component="h2">{t('Annotations')}</Content>
+          <Button
+            variant="link"
+            onClick={() => {
+              setOpenModal('annotations');
+            }}
+          >
             {t('Edit')}
           </Button>
         </div>
@@ -584,106 +530,97 @@ export default function TenantNamespaceDetailPage() {
         </span>
       </PageSection>
 
-      <PageSection className="console-plugin-capsule__claims-section">
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}
-        >
-          <Content component="h2">
-            {t('Quotas')}
-          </Content>
-          {pool && (
-            <Button variant="primary" onClick={() => setClaimModalOpen(true)}>
-              {t('Create Claim')}
-            </Button>
-          )}
-        </div>
+      <PageSection className="console-plugin-capsule__table-section">
+        <Content component="h2" style={{ marginBottom: '1rem' }}>
+          {t('Quotas')}
+        </Content>
 
-        {!quotasLoaded && <Spinner aria-label={t('Loading quotas')} />}
+        {!grqsLoaded && <Spinner aria-label={t('Loading quotas')} />}
 
-        {quotasLoaded && quotaNames.length === 0 && (
-          <span>{t('No resource quotas for this namespace.')}</span>
+        {grqsLoaded && grqsError && (
+          <Alert variant="danger" title={t('Error')} isInline>
+            {grqsError}
+          </Alert>
         )}
 
-        {quotasLoaded && quotaNames.length > 0 && (
+        {grqsLoaded && !grqsError && matchingGrqs.length === 0 && (
+          <span>{t('No GlobalResourceQuotas match this namespace.')}</span>
+        )}
+
+        {grqsLoaded && !grqsError && matchingGrqs.length > 0 && (
           <>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <Select
-                isOpen={quotaSelectOpen}
-                selected={selectedQuotaName}
-                onSelect={(_e, val) => {
-                  setSelectedQuotaName(String(val));
-                  setQuotaSelectOpen(false);
-                }}
-                onOpenChange={setQuotaSelectOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setQuotaSelectOpen((o) => !o)}
-                    isExpanded={quotaSelectOpen}
-                  >
-                    {selectedQuotaName || t('Select quota')}
-                  </MenuToggle>
-                )}
-                shouldFocusToggleOnSelect
-              >
-                <SelectList>
-                  {quotaNames.map((qName) => (
-                    <SelectOption
-                      key={qName}
-                      value={qName}
-                      isSelected={qName === selectedQuotaName}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginBottom: '1.5rem',
+              }}
+            >
+              {matchingGrqs.length > 1 && (
+                <Select
+                  isOpen={grqSelectOpen}
+                  selected={selectedGrqName}
+                  onSelect={(_e, val) => {
+                    setSelectedGrqName(String(val));
+                    setGrqSelectOpen(false);
+                  }}
+                  onOpenChange={setGrqSelectOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => {
+                        setGrqSelectOpen((o) => !o);
+                      }}
+                      isExpanded={grqSelectOpen}
                     >
-                      {qName}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
+                      {selectedGrqName || t('Select quota')}
+                    </MenuToggle>
+                  )}
+                  shouldFocusToggleOnSelect
+                >
+                  <SelectList>
+                    {matchingGrqs.map((g) => (
+                      <SelectOption
+                        key={g.metadata.name}
+                        value={g.metadata.name}
+                        isSelected={g.metadata.name === selectedGrqName}
+                      >
+                        {g.metadata.name}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              )}
+              {selectedGrq && (
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => {
+                    navigate(`/capsule-global-resource-quotas/${selectedGrq.metadata.name}`);
+                  }}
+                >
+                  {matchingGrqs.length > 1
+                    ? t('View quota details')
+                    : t('Quota: {{name}}', { name: selectedGrq.metadata.name })}
+                </Button>
+              )}
             </div>
 
-            {!quotaLoaded && selectedQuotaName && (
-              <Spinner aria-label={t('Loading quota')} />
-            )}
-
-            {quotaLoaded && selectedQuota && (
-              <>
-                <Content component="h3" style={{ marginBottom: '0.75rem' }}>
-                  {t('Current usage')}
-                </Content>
-                <div className="console-plugin-capsule__gauges" style={{ marginBottom: '1.5rem' }}>
-                  {Object.keys(quotaHard).map((resource) => (
-                    <UsageGauge
-                      key={resource}
-                      resource={resource}
-                      used={quotaUsed[resource]}
-                      hard={quotaHard[resource]}
-                    />
-                  ))}
-                  {Object.keys(quotaHard).length === 0 && (
-                    <span>{t('No resource limits defined.')}</span>
-                  )}
-                </div>
-
-                {poolName && (
-                  <>
-                    <Content component="h3" style={{ marginBottom: '0.75rem' }}>
-                      {t('ResourcePoolClaims')}
-                    </Content>
-                    {!poolLoaded ? (
-                      <Spinner aria-label={t('Loading pool')} />
-                    ) : (
-                      <ResourcePoolClaimsTable
-                        claims={claims}
-                        claimsLoaded={claimsLoaded}
-                        claimsError={claimsError}
-                        pool={pool}
-                        onRefresh={() => setRefreshToken((n) => n + 1)}
-                        emptyMessage={t('No claims for this namespace.')}
-                      />
-                    )}
-                  </>
-                )}
-              </>
-            )}
+            <Content component="h3" style={{ marginBottom: '0.75rem' }}>
+              {t('Current usage')}
+            </Content>
+            <div className="console-plugin-capsule__gauges">
+              {Object.keys(grqHard).map((resource) => (
+                <UsageGauge
+                  key={resource}
+                  resource={resource}
+                  used={grqUsed[resource]}
+                  hard={grqHard[resource]}
+                />
+              ))}
+              {Object.keys(grqHard).length === 0 && <span>{t('No resource limits defined.')}</span>}
+            </div>
           </>
         )}
       </PageSection>
@@ -691,7 +628,9 @@ export default function TenantNamespaceDetailPage() {
       {openModal === 'labels' && namespace && (
         <EditLabelsModal
           namespace={namespace}
-          onClose={() => setOpenModal(null)}
+          onClose={() => {
+            setOpenModal(null);
+          }}
           onSaved={(updated) => {
             setNamespace(updated);
             setOpenModal(null);
@@ -701,23 +640,12 @@ export default function TenantNamespaceDetailPage() {
       {openModal === 'annotations' && namespace && (
         <EditAnnotationsModal
           namespace={namespace}
-          onClose={() => setOpenModal(null)}
+          onClose={() => {
+            setOpenModal(null);
+          }}
           onSaved={(updated) => {
             setNamespace(updated);
             setOpenModal(null);
-          }}
-        />
-      )}
-      {claimModalOpen && pool && (
-        <CreateResourcePoolClaimModal
-          poolName={pool.metadata.name}
-          poolHard={poolAvailable}
-          tenantName={tenant}
-          defaultNamespace={name}
-          onClose={() => setClaimModalOpen(false)}
-          onCreated={() => {
-            setClaimModalOpen(false);
-            setRefreshToken((n) => n + 1);
           }}
         />
       )}
