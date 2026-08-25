@@ -121,8 +121,8 @@ build the image. This flag targets the correct platform for the cluster.
 
 A [Helm](https://helm.sh) chart deploys the plugin to an OpenShift cluster.
 
-The `plugin.image` parameter is required. It is the location of the image that you pushed in
-the previous step.
+The `plugin.image.registry` and `plugin.image.version` parameters are required. Together they
+form the location of the image that you pushed in the previous step.
 
 The chart connects to `capsule-proxy` at `capsule-proxy.capsule-system:9001` by default. Set
 `capsule.proxy.serviceName`, `capsule.proxy.serviceNamespace`, and `capsule.proxy.servicePort`
@@ -138,7 +138,8 @@ Run this command to install the chart:
 ```shell
 helm upgrade -i console-plugin-capsule charts/openshift-console-plugin \
   -n console-plugin-capsule --create-namespace \
-  --set plugin.image=ghcr.io/baswag/console-plugin-capsule:0.0.6
+  --set plugin.image.registry=ghcr.io/baswag/console-plugin-capsule \
+  --set plugin.image.version=0.0.6
 ```
 
 ## i18n

@@ -15,29 +15,22 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Grid,
-  GridItem,
   Label,
   LabelGroup,
   MenuToggle,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   PageSection,
   Select,
   SelectList,
   SelectOption,
   Spinner,
-  TextInput,
-  TextInputGroup,
-  TextInputGroupMain,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import { CapsuleClient, CAPSULE_APIS } from '../utils/capsule';
 import type { GlobalResourceQuota } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { UsageGauge } from '../utils/common';
+import EditLabelsModal from './EditLabelsModal';
+import EditAnnotationsModal, { visibleAnnotations } from './EditAnnotationsModal';
 import './Gauges.css';
 
 const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
@@ -51,300 +44,13 @@ const globalResourceQuotasApi = new CapsuleClient<GlobalResourceQuota>(
   CAPSULE_APIS.GLOBAL_RESOURCE_QUOTAS,
 );
 
-const HIDDEN_ANNOTATION_KEYS = ['kubectl.kubernetes.io/last-applied-configuration'];
-
-// --- Annotation helpers ---
-interface KVRow {
-  id: number;
-  key: string;
-  value: string;
+// Array index access isn't tracked as possibly-undefined by this project's tsconfig
+// (noUncheckedIndexedAccess is off), so an explicit return type is used here to keep this
+// particular access honest for an empty array.
+function firstOrUndefined<T>(items: T[]): T | undefined {
+  return items[0];
 }
 
-let _nextId = 0;
-const nextId = () => _nextId++;
-
-function toRows(record: Record<string, string> | undefined, hidden?: string[]): KVRow[] {
-  if (!record) return [];
-  return Object.entries(record)
-    .filter(([key]) => !hidden?.includes(key))
-    .map(([key, value]) => ({ id: nextId(), key, value }));
-}
-
-function toRecord(rows: KVRow[]): Record<string, string> {
-  return Object.fromEntries(rows.filter((r) => r.key).map((r) => [r.key, r.value]));
-}
-
-function visibleAnnotations(raw: Record<string, string> | undefined): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(raw ?? {}).filter(([k]) => !HIDDEN_ANNOTATION_KEYS.includes(k)),
-  );
-}
-
-// --- Label helpers ---
-function labelsToStrings(labels: Record<string, string> | undefined): string[] {
-  return Object.entries(labels ?? {}).map(([k, v]) => (v ? `${k}=${v}` : k));
-}
-
-function stringsToRecord(strs: string[]): Record<string, string> {
-  return Object.fromEntries(
-    strs.map((s) => {
-      const idx = s.indexOf('=');
-      return idx === -1 ? [s, ''] : [s.slice(0, idx), s.slice(idx + 1)];
-    }),
-  );
-}
-
-// --- EditLabelsModal ---
-interface EditLabelsModalProps {
-  namespace: V1NamespaceString;
-  onClose: () => void;
-  onSaved: (updated: V1NamespaceString) => void;
-}
-
-function EditLabelsModal({ namespace, onClose, onSaved }: EditLabelsModalProps) {
-  const { t } = useTranslation('plugin__console-plugin-capsule');
-  const name = namespace.metadata.name;
-
-  const [labels, setLabels] = useState<string[]>(() => labelsToStrings(namespace.metadata?.labels));
-  const [inputValue, setInputValue] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const addLabel = (raw: string) => {
-    const trimmed = raw.trim().replace(/,$/, '');
-    if (trimmed && !labels.includes(trimmed)) {
-      setLabels((prev) => [...prev, trimmed]);
-    }
-    setInputValue('');
-  };
-
-  const removeLabel = (label: string) => {
-    setLabels((prev) => prev.filter((l) => l !== label));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      if (inputValue) addLabel(inputValue);
-    } else if (e.key === 'Backspace' && !inputValue && labels.length > 0) {
-      removeLabel(labels[labels.length - 1]);
-    }
-  };
-
-  const handleSave = () => {
-    setSaving(true);
-    setError(null);
-    const newLabels = stringsToRecord(labels);
-    const currentLabels = namespace.metadata?.labels ?? {};
-
-    const labelPatch: Record<string, string | null> = { ...newLabels };
-    for (const key of Object.keys(currentLabels)) {
-      if (!(key in newLabels)) labelPatch[key] = null;
-    }
-
-    namespacesApiClient
-      .patch(name, { metadata: { labels: labelPatch } })
-      .then((updated) => {
-        onSaved(updated);
-      })
-      .catch((e: Error) => {
-        setError(e.message ?? t('Failed to save labels'));
-        setSaving(false);
-      });
-  };
-
-  return (
-    <Modal isOpen onClose={onClose} variant="medium">
-      <ModalHeader title={t('Edit labels')} />
-      <ModalBody>
-        {error && (
-          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-            {error}
-          </Alert>
-        )}
-        <p>
-          {t(
-            'Labels help you organize and select resources. Adding labels below will let you query for objects that have similar, overlapping or dissimilar labels.',
-          )}
-        </p>
-        <p style={{ marginTop: '0.75rem' }}>
-          <strong>
-            {t('Labels for')} {name}
-          </strong>
-        </p>
-        <TextInputGroup style={{ marginTop: '0.5rem' }}>
-          <TextInputGroupMain
-            value={inputValue}
-            onChange={(_e, val) => {
-              setInputValue(val);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={labels.length === 0 ? 'app=frontend' : undefined}
-          >
-            <LabelGroup>
-              {labels.map((label) => (
-                <Label
-                  key={label}
-                  onClose={() => {
-                    removeLabel(label);
-                  }}
-                >
-                  {label}
-                </Label>
-              ))}
-            </LabelGroup>
-          </TextInputGroupMain>
-        </TextInputGroup>
-      </ModalBody>
-      <ModalFooter>
-        <Button variant="primary" onClick={handleSave} isDisabled={saving} isLoading={saving}>
-          {t('Save')}
-        </Button>
-        <Button variant="link" onClick={onClose} isDisabled={saving}>
-          {t('Cancel')}
-        </Button>
-      </ModalFooter>
-    </Modal>
-  );
-}
-
-// --- KeyValueEditor (used by EditAnnotationsModal) ---
-interface KeyValueEditorProps {
-  rows: KVRow[];
-  onChange: (rows: KVRow[]) => void;
-  idPrefix: string;
-}
-
-function KeyValueEditor({ rows, onChange, idPrefix }: KeyValueEditorProps) {
-  const { t } = useTranslation('plugin__console-plugin-capsule');
-
-  const addRow = () => {
-    onChange([...rows, { id: nextId(), key: '', value: '' }]);
-  };
-  const removeRow = (id: number) => {
-    onChange(rows.filter((r) => r.id !== id));
-  };
-  const updateRow = (id: number, field: 'key' | 'value', val: string) => {
-    onChange(rows.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
-  };
-
-  return (
-    <div>
-      {rows.map((row) => (
-        <Grid key={row.id} hasGutter className="console-plugin-capsule__kv-row">
-          <GridItem span={5}>
-            <TextInput
-              id={`${idPrefix}-key-${row.id}`}
-              aria-label={t('Key')}
-              placeholder={t('Key')}
-              value={row.key}
-              onChange={(_e, val) => {
-                updateRow(row.id, 'key', val);
-              }}
-            />
-          </GridItem>
-          <GridItem span={6}>
-            <TextInput
-              id={`${idPrefix}-value-${row.id}`}
-              aria-label={t('Value')}
-              placeholder={t('Value')}
-              value={row.value}
-              onChange={(_e, val) => {
-                updateRow(row.id, 'value', val);
-              }}
-            />
-          </GridItem>
-          <GridItem span={1}>
-            <Button
-              variant="plain"
-              aria-label={t('Remove')}
-              onClick={() => {
-                removeRow(row.id);
-              }}
-            >
-              <MinusCircleIcon />
-            </Button>
-          </GridItem>
-        </Grid>
-      ))}
-      <Button variant="link" icon={<PlusCircleIcon />} onClick={addRow}>
-        {t('Add more')}
-      </Button>
-    </div>
-  );
-}
-
-// --- EditAnnotationsModal ---
-interface EditAnnotationsModalProps {
-  namespace: V1NamespaceString;
-  onClose: () => void;
-  onSaved: (updated: V1NamespaceString) => void;
-}
-
-function EditAnnotationsModal({ namespace, onClose, onSaved }: EditAnnotationsModalProps) {
-  const { t } = useTranslation('plugin__console-plugin-capsule');
-  const name = namespace.metadata.name;
-
-  const [rows, setRows] = useState<KVRow[]>(() =>
-    toRows(namespace.metadata?.annotations, HIDDEN_ANNOTATION_KEYS),
-  );
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = () => {
-    setSaving(true);
-    setError(null);
-    const newAnnotationsVisible = toRecord(rows);
-    const currentAnnotations = namespace.metadata?.annotations ?? {};
-
-    const annotationPatch: Record<string, string | null> = { ...newAnnotationsVisible };
-    for (const key of Object.keys(currentAnnotations)) {
-      if (!HIDDEN_ANNOTATION_KEYS.includes(key) && !(key in newAnnotationsVisible)) {
-        annotationPatch[key] = null;
-      }
-    }
-
-    const hiddenAnnotations = Object.fromEntries(
-      Object.entries(currentAnnotations).filter(([key]) => HIDDEN_ANNOTATION_KEYS.includes(key)),
-    );
-
-    namespacesApiClient
-      .patch(name, {
-        metadata: { annotations: { ...annotationPatch, ...hiddenAnnotations } },
-      })
-      .then((updated) => {
-        onSaved(updated);
-      })
-      .catch((e: Error) => {
-        setError(e.message ?? t('Failed to save annotations'));
-        setSaving(false);
-      });
-  };
-
-  return (
-    <Modal isOpen onClose={onClose} variant="medium">
-      <ModalHeader title={t('Edit annotations')} />
-      <ModalBody>
-        {error && (
-          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
-            {error}
-          </Alert>
-        )}
-        <KeyValueEditor rows={rows} onChange={setRows} idPrefix="annotations" />
-      </ModalBody>
-      <ModalFooter>
-        <Button variant="primary" onClick={handleSave} isDisabled={saving} isLoading={saving}>
-          {t('Save')}
-        </Button>
-        <Button variant="link" onClick={onClose} isDisabled={saving}>
-          {t('Cancel')}
-        </Button>
-      </ModalFooter>
-    </Modal>
-  );
-}
-
-// --- TenantNamespaceDetailPage ---
 export default function TenantNamespaceDetailPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const { name } = useParams<{ name: string }>();
@@ -373,8 +79,8 @@ export default function TenantNamespaceDetailPage() {
         setNamespace(data);
         setLoaded(true);
       })
-      .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch namespace'));
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : t('Failed to fetch namespace'));
         setLoaded(true);
       });
   }, [name, t, refreshToken]);
@@ -388,7 +94,7 @@ export default function TenantNamespaceDetailPage() {
     globalResourceQuotasApi
       .fetch()
       .then((data) => {
-        const matches = (data.items ?? []).filter((g) =>
+        const matches = data.items.filter((g) =>
           (g.status?.namespaces ?? Object.keys(g.status?.namespaceUsage ?? {})).includes(name),
         );
         setMatchingGrqs(matches);
@@ -397,8 +103,8 @@ export default function TenantNamespaceDetailPage() {
           !prev && matches.length > 0 ? matches[0].metadata.name : prev,
         );
       })
-      .catch((e: Error) => {
-        setGrqsError(e.message ?? t('Failed to fetch GlobalResourceQuotas'));
+      .catch((e: unknown) => {
+        setGrqsError(e instanceof Error ? e.message : t('Failed to fetch GlobalResourceQuotas'));
         setGrqsLoaded(true);
       });
   }, [name, t, refreshToken]);
@@ -421,18 +127,18 @@ export default function TenantNamespaceDetailPage() {
     );
   }
 
-  const labelEntries = Object.entries(namespace?.metadata?.labels ?? {});
-  const annotationCount = Object.keys(visibleAnnotations(namespace?.metadata?.annotations)).length;
+  const labelEntries = Object.entries(namespace?.metadata.labels ?? {});
+  const annotationCount = Object.keys(visibleAnnotations(namespace?.metadata.annotations)).length;
 
   const selectedGrq =
-    matchingGrqs.find((g) => g.metadata.name === selectedGrqName) ?? matchingGrqs[0];
+    matchingGrqs.find((g) => g.metadata.name === selectedGrqName) ?? firstOrUndefined(matchingGrqs);
   const grqHard = selectedGrq?.spec.quota.hard ?? {};
   const grqUsed = (name ? selectedGrq?.status?.namespaceUsage?.[name]?.used : undefined) ?? {};
 
   return (
     <>
       <DocumentTitle>{t('Namespace: {{name}}', { name })}</DocumentTitle>
-      <ListPageHeader title={`${t('Namespace')}: ${name}`}>
+      <ListPageHeader title={t('Namespace: {{name}}', { name })}>
         <Button
           variant="plain"
           aria-label={t('Refresh')}
@@ -479,12 +185,11 @@ export default function TenantNamespaceDetailPage() {
       </PageSection>
 
       <PageSection>
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}
-        >
+        <div className="console-plugin-capsule__section-header">
           <Content component="h2">{t('Labels')}</Content>
           <Button
             variant="link"
+            aria-label={t('Edit labels')}
             onClick={() => {
               setOpenModal('labels');
             }}
@@ -501,23 +206,14 @@ export default function TenantNamespaceDetailPage() {
             ))}
           </LabelGroup>
         ) : (
-          <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-            {t('No labels')}
-          </span>
+          <span className="console-plugin-capsule__muted-text">{t('No labels')}</span>
         )}
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            marginTop: '2rem',
-            marginBottom: '0.5rem',
-          }}
-        >
+        <div className="console-plugin-capsule__section-header console-plugin-capsule__section-header--spaced">
           <Content component="h2">{t('Annotations')}</Content>
           <Button
             variant="link"
+            aria-label={t('Edit annotations')}
             onClick={() => {
               setOpenModal('annotations');
             }}
@@ -525,13 +221,11 @@ export default function TenantNamespaceDetailPage() {
             {t('Edit')}
           </Button>
         </div>
-        <span>
-          {annotationCount} {t('annotations')}
-        </span>
+        <span>{t('{{count}} annotation', { count: annotationCount })}</span>
       </PageSection>
 
       <PageSection className="console-plugin-capsule__table-section">
-        <Content component="h2" style={{ marginBottom: '1rem' }}>
+        <Content component="h2" className="console-plugin-capsule__section-title">
           {t('Quotas')}
         </Content>
 
@@ -549,14 +243,7 @@ export default function TenantNamespaceDetailPage() {
 
         {grqsLoaded && !grqsError && matchingGrqs.length > 0 && (
           <>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                marginBottom: '1.5rem',
-              }}
-            >
+            <div className="console-plugin-capsule__section-header">
               {matchingGrqs.length > 1 && (
                 <Select
                   isOpen={grqSelectOpen}
@@ -607,7 +294,7 @@ export default function TenantNamespaceDetailPage() {
               )}
             </div>
 
-            <Content component="h3" style={{ marginBottom: '0.75rem' }}>
+            <Content component="h3" className="console-plugin-capsule__subsection-title">
               {t('Current usage')}
             </Content>
             <div className="console-plugin-capsule__gauges">

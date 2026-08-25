@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-data-view';
 import type { GlobalResourceQuota } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
-import { readyConditionStatus } from '../utils/common';
+import { grqNamespaceCount, readyConditionStatus } from '../utils/common';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
 const globalResourceQuotasApi = new CapsuleClient<GlobalResourceQuota>(
@@ -30,7 +30,7 @@ const getSortValue = (grq: GlobalResourceQuota, key: ColumnKey): string | number
     case 'name':
       return grq.metadata.name;
     case 'namespaces':
-      return grq.status?.namespaceCount ?? grq.status?.namespaces?.length ?? 0;
+      return grqNamespaceCount(grq.status);
     case 'created':
       return grq.metadata.creationTimestamp;
     default:
@@ -61,11 +61,11 @@ export default function GlobalResourceQuotasPage() {
     globalResourceQuotasApi
       .fetch()
       .then((data) => {
-        setQuotas(data.items ?? []);
+        setQuotas(data.items);
         setLoaded(true);
       })
-      .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch GlobalResourceQuotas'));
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : t('Failed to fetch GlobalResourceQuotas'));
         setLoaded(true);
       });
   }, [t, refreshToken]);
@@ -94,7 +94,7 @@ export default function GlobalResourceQuotasPage() {
     >
       {grq.metadata.name}
     </Button>,
-    grq.status?.namespaceCount ?? grq.status?.namespaces?.length ?? 0,
+    grqNamespaceCount(grq.status),
     <ReadyLabel key="ready" grq={grq} />,
     <Timestamp key="ts" timestamp={grq.metadata.creationTimestamp} />,
   ]);

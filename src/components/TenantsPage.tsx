@@ -19,11 +19,14 @@ import {
 } from '@patternfly/react-data-view';
 import type { Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
+import { tenantNamespaceCount } from '../utils/common';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
 const UNSORTABLE: ColumnKey[] = ['owners'];
+
+const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
 
 const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
   switch (key) {
@@ -32,7 +35,7 @@ const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
     case 'state':
       return tenant.status?.state ?? '';
     case 'namespaceCount':
-      return tenant.status?.size ?? tenant.status?.namespaces?.length ?? 0;
+      return tenantNamespaceCount(tenant.status);
     case 'created':
       return tenant.metadata.creationTimestamp;
     default:
@@ -42,8 +45,6 @@ const getSortValue = (tenant: Tenant, key: ColumnKey): string | number => {
 
 export default function TenantsPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
-
-  const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
 
   const navigate = useNavigate();
 
@@ -64,11 +65,11 @@ export default function TenantsPage() {
     tenantApi
       .fetch()
       .then((data) => {
-        setTenants(data.items ?? []);
+        setTenants(data.items);
         setLoaded(true);
       })
-      .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch tenants'));
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : t('Failed to fetch tenants'));
         setLoaded(true);
       });
   }, [t, refreshToken]);
@@ -99,7 +100,7 @@ export default function TenantsPage() {
       {tenant.metadata.name}
     </Button>,
     tenant.status?.state ?? '—',
-    String(tenant.status?.size ?? tenant.status?.namespaces?.length ?? 0),
+    String(tenantNamespaceCount(tenant.status)),
     (tenant.spec.owners ?? []).map((o) => `${o.name} (${o.kind})`).join(', ') || '—',
     <Timestamp key="ts" timestamp={tenant.metadata.creationTimestamp} />,
   ]);

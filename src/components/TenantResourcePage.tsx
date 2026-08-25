@@ -35,6 +35,9 @@ import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 const COLUMN_KEYS = ['name', 'namespace', 'resources', 'processedItems', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
 
+const resourceCount = (item: TenantResource): number => item.spec.resources?.length ?? 0;
+const processedItemCount = (item: TenantResource): number => item.status.processedItems.length;
+
 const getSortValue = (item: TenantResource, key: ColumnKey): string | number => {
   switch (key) {
     case 'name':
@@ -42,9 +45,9 @@ const getSortValue = (item: TenantResource, key: ColumnKey): string | number => 
     case 'namespace':
       return item.metadata.namespace ?? '';
     case 'resources':
-      return item.spec.resources?.length ?? 0;
+      return resourceCount(item);
     case 'processedItems':
-      return item.status?.processedItems?.length ?? 0;
+      return processedItemCount(item);
     case 'created':
       return item.metadata.creationTimestamp;
     default:
@@ -52,20 +55,20 @@ const getSortValue = (item: TenantResource, key: ColumnKey): string | number => 
   }
 };
 
+const namespacesApi = new CapsuleClient<V1NamespaceString>({
+  apiGroup: '',
+  apiVersion: 'v1',
+  apiKind: 'namespaces',
+  apiKindSingle: 'Namespace',
+});
+
+const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
+
+const tenantResourceApi = new CapsuleClient<TenantResource>(CAPSULE_APIS.TENANT_RESOURCES);
+
 export default function TenantResourcePage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const navigate = useNavigate();
-
-  const namespacesApi = new CapsuleClient<V1NamespaceString>({
-    apiGroup: '',
-    apiVersion: 'v1',
-    apiKind: 'namespaces',
-    apiKindSingle: 'Namespace',
-  });
-
-  const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
-
-  const tenantResourceApi = new CapsuleClient<TenantResource>(CAPSULE_APIS.TENANT_RESOURCES);
 
   const [selectedTenant, setSelectedTenant] = useState('');
   const [tenantSelectOpen, setTenantSelectOpen] = useState(false);
@@ -91,7 +94,7 @@ export default function TenantResourcePage() {
     tenantApi
       .fetch()
       .then((data) => {
-        setTenants((data.items ?? []).map((tenant) => tenant.metadata.name));
+        setTenants(data.items.map((tenant) => tenant.metadata.name));
       })
       .catch(() => {
         setTenants([]);
@@ -103,7 +106,7 @@ export default function TenantResourcePage() {
     namespacesApi
       .fetch({ labelSelector: { 'capsule.clastix.io/tenant': selectedTenant } })
       .then((data) => {
-        setNamespaces((data.items ?? []).map((ns) => ns.metadata.name));
+        setNamespaces(data.items.map((ns) => ns.metadata.name));
       })
       .catch(() => {
         setNamespaces([]);
@@ -119,11 +122,11 @@ export default function TenantResourcePage() {
         labelSelector: { 'capsule.clastix.io/tenant': selectedTenant },
       })
       .then((data) => {
-        setItems(data.items ?? []);
+        setItems(data.items);
         setLoaded(true);
       })
-      .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch TenantResources'));
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : t('Failed to fetch TenantResources'));
         setLoaded(true);
       });
   }, [selectedNamespace, selectedTenant, t, refreshToken]);
@@ -154,8 +157,8 @@ export default function TenantResourcePage() {
       {item.metadata.name}
     </Button>,
     item.metadata.namespace ?? '—',
-    String(item.spec.resources?.length ?? 0),
-    String(item.status?.processedItems?.length ?? 0),
+    String(resourceCount(item)),
+    String(processedItemCount(item)),
     <Timestamp key="ts" timestamp={item.metadata.creationTimestamp} />,
   ]);
 

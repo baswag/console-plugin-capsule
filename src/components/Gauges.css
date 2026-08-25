@@ -23,6 +23,16 @@
   position: relative;
 }
 
+.console-plugin-capsule__gauge-track {
+  fill: none;
+  stroke: var(--pf-t--global--border--color--default);
+}
+
+.console-plugin-capsule__gauge-progress {
+  fill: none;
+  stroke-linecap: round;
+}
+
 .console-plugin-capsule__gauge-center {
   position: absolute;
   inset: 0;
@@ -60,4 +70,47 @@
 
 .console-plugin-capsule__table-section {
   margin-top: 1.5rem;
+}
+
+.console-plugin-capsule__alert {
+  margin-bottom: 1rem;
+}
+
+.console-plugin-capsule__info-alert {
+  margin-top: 1rem;
+}
+
+.console-plugin-capsule__section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.console-plugin-capsule__section-header--spaced {
+  margin-top: 2rem;
+}
+
+.console-plugin-capsule__section-title {
+  margin-bottom: 1rem;
+}
+
+.console-plugin-capsule__subsection-title {
+  margin-bottom: 0.75rem;
+}
+
+.console-plugin-capsule__muted-text {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.console-plugin-capsule__inline-note {
+  margin-left: 0.5rem;
+}
+
+.console-plugin-capsule__label-group {
+  margin-top: 0.75rem;
+}
+
+.console-plugin-capsule__input-group {
+  margin-top: 0.5rem;
 }

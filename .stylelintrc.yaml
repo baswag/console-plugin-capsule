@@ -12,7 +12,6 @@ rules:
     - hsl
     - hsla
     - oklch
-    - oklch
     - hwb
     - lab
     - lch

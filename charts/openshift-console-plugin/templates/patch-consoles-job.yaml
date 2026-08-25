@@ -35,8 +35,23 @@ spec:
             - /bin/bash
             - -c
             - |
-                existingPlugins=$(oc get consoles.operator.openshift.io cluster -o json | jq -c '.spec.plugins // []')
-                mergedPlugins=$(jq --argjson existingPlugins "${existingPlugins}" --argjson consolePlugin '["{{ template "openshift-console-plugin.name" . }}"]' -c  -n '$existingPlugins + $consolePlugin | unique')
-                patchedPlugins=$(jq --argjson mergedPlugins $mergedPlugins -n -c  '{ "spec": { "plugins": $mergedPlugins } }')
-                oc patch consoles.operator.openshift.io cluster --patch $patchedPlugins  --type=merge
+                # Re-reads the current plugin list on every attempt and retries the patch a
+                # few times to narrow (not eliminate) the race with concurrent installs of
+                # other plugins patching the same cluster-scoped console object.
+                for attempt in $(seq 1 5); do
+                  existingPlugins=$(oc get consoles.operator.openshift.io cluster -o json | jq -c '.spec.plugins // []')
+                  mergedPlugins=$(jq --argjson existingPlugins "${existingPlugins}" --argjson consolePlugin '["{{ template "openshift-console-plugin.name" . }}"]' -c  -n '$existingPlugins + $consolePlugin | unique')
+                  if [ "${existingPlugins}" = "${mergedPlugins}" ]; then
+                    echo "Plugin already registered on consoles.operator.openshift.io/cluster."
+                    exit 0
+                  fi
+                  patchedPlugins=$(jq --argjson mergedPlugins "${mergedPlugins}" -n -c  '{ "spec": { "plugins": $mergedPlugins } }')
+                  if oc patch consoles.operator.openshift.io cluster --patch "${patchedPlugins}" --type=merge; then
+                    exit 0
+                  fi
+                  echo "Patch attempt ${attempt} failed, retrying..."
+                  sleep 2
+                done
+                echo "Failed to patch consoles.operator.openshift.io/cluster after 5 attempts" >&2
+                exit 1
 {{- end }}

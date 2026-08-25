@@ -14,6 +14,11 @@ data:
       ssl_certificate_key /var/cert/tls.key;
       root                /usr/share/nginx/html;
 
+      # console-extensions.json declares the nav section name as the literal placeholder
+      # __CAPSULE_SECTION_NAME__ so it can be set per-deployment via plugin.sectionName.
+      # This bypasses the plugin's i18n system on purpose: a Helm-configured value isn't
+      # available at build time, so it can't be expressed as a "%plugin__ns~key%" i18n
+      # reference. The substituted text is shown as-is in every locale.
       location = /plugin-manifest.json {
         sub_filter_types *;
         sub_filter '__CAPSULE_SECTION_NAME__' '{{ .Values.plugin.sectionName }}';

@@ -16,9 +16,17 @@ import {
 } from '@patternfly/react-core';
 import { CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
+import './Gauges.css';
 
 // Kubernetes namespace name validation: lowercase alphanumeric and hyphens, max 63 chars
 const NS_PATTERN = /^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/;
+
+const namespacesApi = new CapsuleClient<V1NamespaceString>({
+  apiGroup: '',
+  apiVersion: 'v1',
+  apiKind: 'namespaces',
+  apiKindSingle: 'Namespace',
+});
 
 interface CreateNamespaceModalProps {
   tenant: string;
@@ -36,13 +44,6 @@ export default function CreateNamespaceModal({
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const namespacesApi = new CapsuleClient<V1NamespaceString>({
-    apiGroup: '',
-    apiVersion: 'v1',
-    apiKind: 'namespaces',
-    apiKindSingle: 'Namespace',
-  });
 
   const isValid = NS_PATTERN.test(name);
   const showValidation = name.length > 0 && !isValid;
@@ -69,8 +70,8 @@ export default function CreateNamespaceModal({
       .then(() => {
         onCreated(name);
       })
-      .catch((e: Error) => {
-        setError(e.message ?? t('Failed to create namespace'));
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : t('Failed to create namespace'));
         setSubmitting(false);
       });
   };
@@ -81,7 +82,12 @@ export default function CreateNamespaceModal({
       <ModalBody>
         <p>{t('Namespace will be assigned to tenant: {{tenant}}', { tenant })}</p>
         {error && (
-          <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+          <Alert
+            variant="danger"
+            title={t('Error')}
+            isInline
+            className="console-plugin-capsule__alert"
+          >
             {error}
           </Alert>
         )}

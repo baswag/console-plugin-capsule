@@ -1,10 +1,11 @@
 import type { MouseEvent, RefObject } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import { ListPageHeader, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import {
   Alert,
+  AlertActionCloseButton,
   Button,
   MenuToggle,
   Modal,
@@ -32,6 +33,9 @@ import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 import { SyncAltIcon, TrashIcon } from '@patternfly/react-icons';
+import './Gauges.css';
+
+const MAX_PENDING_NAMESPACE_ATTEMPTS = 15;
 
 const COLUMN_KEYS = ['name', 'status', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number];
@@ -54,6 +58,8 @@ const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
   apiKindSingle: 'Namespace',
 });
 
+const tenantApiClient = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
+
 function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted: () => void }) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const [canDelete, setCanDelete] = useState(false);
@@ -63,18 +69,27 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
 
   useEffect(() => {
     namespacesApiClient
-      .authCanI({ verb: 'delete', name: ns.metadata?.name, namespace: ns.metadata?.name })
-      .then(setCanDelete);
-  }, [ns.metadata?.name]);
+      .authCanI({ verb: 'delete', name: ns.metadata.name, namespace: ns.metadata.name })
+      .then(setCanDelete)
+      .catch(() => {
+        setCanDelete(false);
+      });
+  }, [ns.metadata.name]);
 
   const deleteNamespace = () => {
     setDeleting(true);
     setDeleteError(null);
-    namespacesApiClient.fetch({ name: ns.metadata.name, method: 'DELETE' }).then(() => {
-      setDeleteOpen(false);
-      setDeleting(false);
-      onDeleted();
-    });
+    namespacesApiClient
+      .fetch({ name: ns.metadata.name, method: 'DELETE' })
+      .then(() => {
+        setDeleteOpen(false);
+        setDeleting(false);
+        onDeleted();
+      })
+      .catch((e: unknown) => {
+        setDeleteError(e instanceof Error ? e.message : t('Failed to delete namespace'));
+        setDeleting(false);
+      });
   };
 
   return (
@@ -101,7 +116,12 @@ function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted
           <ModalHeader title={t('Delete Namespace')} />
           <ModalBody>
             {deleteError && (
-              <Alert variant="danger" title={t('Error')} isInline style={{ marginBottom: '1rem' }}>
+              <Alert
+                variant="danger"
+                title={t('Error')}
+                isInline
+                className="console-plugin-capsule__alert"
+              >
                 {deleteError}
               </Alert>
             )}
@@ -139,15 +159,6 @@ export default function TenantNamespacesPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const namespacesApi = new CapsuleClient<V1NamespaceString>({
-    apiGroup: '',
-    apiVersion: 'v1',
-    apiKind: 'namespaces',
-    apiKindSingle: 'Namespace',
-  });
-
-  const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
-
   const selectedTenant = new URLSearchParams(location.search).get('tenant') ?? '';
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -160,15 +171,17 @@ export default function TenantNamespacesPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [pendingNamespace, setPendingNamespace] = useState<string | null>(null);
+  const [pendingNamespaceTimedOut, setPendingNamespaceTimedOut] = useState(false);
+  const pendingAttemptsRef = useRef(0);
 
-  const fetchKey = selectedTenant ? `${selectedTenant}:${refreshToken}` : '';
+  const fetchKey = selectedTenant ? `${selectedTenant}:${String(refreshToken)}` : '';
   const loaded = !fetchKey || fetchResult.fetchedFor === fetchKey;
 
   useEffect(() => {
-    tenantApi
+    tenantApiClient
       .fetch()
       .then((data) => {
-        setTenants(data.items ?? []);
+        setTenants(data.items);
       })
       .catch(() => {
         setTenants([]);
@@ -185,13 +198,21 @@ export default function TenantNamespacesPage() {
   useEffect(() => {
     if (!pendingNamespace || !loaded) return;
     const found = fetchResult.namespaces.some((ns) => ns.metadata.name === pendingNamespace);
-    const timer = found
-      ? setTimeout(() => {
-          setPendingNamespace(null);
-        }, 0)
-      : setTimeout(() => {
-          setRefreshToken((n) => n + 1);
-        }, 1000);
+    if (found) {
+      pendingAttemptsRef.current = 0;
+      setPendingNamespace(null);
+      return;
+    }
+    if (pendingAttemptsRef.current >= MAX_PENDING_NAMESPACE_ATTEMPTS) {
+      pendingAttemptsRef.current = 0;
+      setPendingNamespace(null);
+      setPendingNamespaceTimedOut(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      pendingAttemptsRef.current += 1;
+      setRefreshToken((n) => n + 1);
+    }, 1000);
     return () => {
       clearTimeout(timer);
     };
@@ -199,20 +220,20 @@ export default function TenantNamespacesPage() {
 
   useEffect(() => {
     if (!fetchKey) return;
-    namespacesApi
+    namespacesApiClient
       .fetch({
         labelSelector: {
           'capsule.clastix.io/tenant': selectedTenant,
         },
       })
       .then((data) => {
-        setFetchResult({ fetchedFor: fetchKey, namespaces: data.items ?? [], loadError: null });
+        setFetchResult({ fetchedFor: fetchKey, namespaces: data.items, loadError: null });
       })
-      .catch((e: Error) => {
+      .catch((e: unknown) => {
         setFetchResult({
           fetchedFor: fetchKey,
           namespaces: [],
-          loadError: e.message ?? t('Failed to fetch namespaces'),
+          loadError: e instanceof Error ? e.message : t('Failed to fetch namespaces'),
         });
       });
   }, [fetchKey, selectedTenant, t]);
@@ -249,6 +270,7 @@ export default function TenantNamespacesPage() {
     ns.status?.phase ?? '—',
     <Timestamp key="ts" timestamp={ns.metadata.creationTimestamp} />,
     <NamespaceDeleteTr
+      key="delete"
       ns={ns}
       onDeleted={() => {
         setRefreshToken((n) => n + 1);
@@ -290,6 +312,23 @@ export default function TenantNamespacesPage() {
           <SyncAltIcon />
         </Button>
       </ListPageHeader>
+      {pendingNamespaceTimedOut && (
+        <Alert
+          variant="info"
+          isInline
+          title={t(
+            'Namespace creation is taking longer than expected. It may still complete in the background.',
+          )}
+          className="console-plugin-capsule__alert"
+          actionClose={
+            <AlertActionCloseButton
+              onClose={() => {
+                setPendingNamespaceTimedOut(false);
+              }}
+            />
+          }
+        />
+      )}
       <DataView activeState={activeState}>
         <DataViewToolbar
           filters={

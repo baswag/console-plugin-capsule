@@ -17,7 +17,7 @@ import {
 import { SyncAltIcon } from '@patternfly/react-icons';
 import type { GlobalResourceQuota } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
-import { readyConditionStatus, UsageGauge } from '../utils/common';
+import { grqNamespaceCount, readyConditionStatus, UsageGauge } from '../utils/common';
 import { GlobalResourceQuotaNamespaceUsageTable } from './GlobalResourceQuotaNamespaceUsageTable';
 import './Gauges.css';
 
@@ -44,8 +44,8 @@ export default function GlobalResourceQuotaDetailPage() {
         setGrq(data);
         setLoaded(true);
       })
-      .catch((e: Error) => {
-        setLoadError(e.message ?? t('Failed to fetch GlobalResourceQuota'));
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : t('Failed to fetch GlobalResourceQuota'));
         setLoaded(true);
       });
   }, [name, t, refreshToken]);
@@ -69,15 +69,15 @@ export default function GlobalResourceQuotaDetailPage() {
   }
 
   const readyStatus = readyConditionStatus(grq?.status?.conditions);
-  const readyCondition = grq?.status?.conditions.find((c) => c.type === 'Ready');
-  const namespaceCount = grq?.status?.namespaceCount ?? grq?.status?.namespaces?.length ?? 0;
-  const hard = grq?.status?.total.hard ?? grq?.spec.quota.hard ?? {};
-  const used = grq?.status?.total.used ?? {};
+  const readyCondition = grq?.status?.conditions?.find((c) => c.type === 'Ready');
+  const namespaceCount = grqNamespaceCount(grq?.status);
+  const hard = grq?.status?.total?.hard ?? grq?.spec.quota.hard ?? {};
+  const used = grq?.status?.total?.used ?? {};
 
   return (
     <>
       <DocumentTitle>{t('Global Resource Quota: {{name}}', { name })}</DocumentTitle>
-      <ListPageHeader title={`${t('Global Resource Quota')}: ${name}`}>
+      <ListPageHeader title={t('Global Resource Quota: {{name}}', { name })}>
         <Button
           variant="plain"
           aria-label={t('Refresh')}
@@ -106,7 +106,9 @@ export default function GlobalResourceQuotaDetailPage() {
                 <Label color="grey">{t('Unknown')}</Label>
               )}
               {readyCondition?.message && (
-                <span style={{ marginLeft: '0.5rem' }}>{readyCondition.message}</span>
+                <span className="console-plugin-capsule__inline-note">
+                  {readyCondition.message}
+                </span>
               )}
             </DescriptionListDescription>
           </DescriptionListGroup>
@@ -131,7 +133,7 @@ export default function GlobalResourceQuotaDetailPage() {
             variant="info"
             title={t('Quota status not yet available.')}
             isInline
-            style={{ marginTop: '1rem' }}
+            className="console-plugin-capsule__info-alert"
           />
         ) : (
           <div className="console-plugin-capsule__gauges">
@@ -149,7 +151,7 @@ export default function GlobalResourceQuotaDetailPage() {
       </PageSection>
 
       <PageSection className="console-plugin-capsule__table-section">
-        <Content component="h2" style={{ marginBottom: '1rem' }}>
+        <Content component="h2" className="console-plugin-capsule__section-title">
           {t('Namespaces')}
         </Content>
 

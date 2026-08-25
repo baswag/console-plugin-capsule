@@ -38,11 +38,12 @@
     "@swc/jest": "^0.2.39",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
+    "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.19.19",
     "@types/react": "^17.0.92",
+    "@types/react-dom": "^17.0.26",
     "babel-loader": "^10.1.1",
     "copy-webpack-plugin": "^14.0.0",
     "css-loader": "^7.1.4",
@@ -67,8 +68,9 @@
     "prettier": "^3.8.3",
     "prettier-stylelint": "^0.4.2",
     "react": "^17.0.2",
-    "react-dom": "^18.3.1",
+    "react-dom": "^17.0.2",
     "react-i18next": "^11.12.0",
+    "react-router-dom-v5-compat": "^6.30.3",
     "style-loader": "^4.0.0",
     "stylelint": "^17.11.1",
     "stylelint-config-standard": "^40.0.0",
@@ -88,8 +90,8 @@
   "consolePlugin": {
     "name": "console-plugin-capsule",
     "version": "0.0.6",
-    "displayName": "OpenShift Console Plugin Template",
-    "description": "Template project for OpenShift Console plugins. Edit package.json to change this message and the plugin name.",
+    "displayName": "Capsule",
+    "description": "An OpenShift Console Plugin for Capsule",
     "exposedModules": {
       "TenantsPage": "./components/TenantsPage",
       "TenantNamespacesPage": "./components/TenantNamespacesPage",
@@ -100,18 +102,6 @@
     },
     "dependencies": {
       "@console/pluginAPI": "^4.20.0"
-    },
-    "proxy": {
-      "alias": "capsule",
-      "authorization": "UserToken",
-      "endpoint": {
-        "type": "Service",
-        "service": {
-          "name": "capsule-proxy",
-          "namespace": "capsule-proxy",
-          "port": 9001
-        }
-      }
     }
   },
   "packageManager": "yarn@4.15.0"

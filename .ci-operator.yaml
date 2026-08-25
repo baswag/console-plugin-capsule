@@ -1,4 +1,4 @@
 build_root_image:
   name: console-plugin-test-cypress
   namespace: ci
-  tag: node22
+  tag: node24

@@ -54,9 +54,9 @@ export class CapsuleClient<T> {
     ].join('/');
   }
 
-  async fetch(options: { name: string } & FetchOptions, json?: any): Promise<T>;
-  async fetch(options?: FetchOptions, json?: any): Promise<{ items: T[] }>;
-  async fetch(options?: FetchOptions, json?: any) {
+  async fetch(options: { name: string } & FetchOptions, json?: unknown): Promise<T>;
+  async fetch(options?: FetchOptions, json?: unknown): Promise<{ items: T[] }>;
+  async fetch(options?: FetchOptions, json?: unknown) {
     let url = this.proxyUrl;
 
     if (options?.namespace) {
@@ -79,9 +79,9 @@ export class CapsuleClient<T> {
     }
 
     if (options?.method === 'POST') {
-      return consoleFetchJSON.post(url, json);
+      return consoleFetchJSON.post(url, json) as Promise<T>;
     }
-    return consoleFetchJSON(url, options?.method);
+    return consoleFetchJSON(url, options?.method) as Promise<T | { items: T[] }>;
   }
 
   async patch(name: string, json: unknown, namespace?: string): Promise<T> {
@@ -93,7 +93,7 @@ export class CapsuleClient<T> {
     return consoleFetchJSON(url, 'PATCH', {
       headers: { 'Content-Type': 'application/merge-patch+json' },
       body: JSON.stringify(json),
-    });
+    }) as Promise<T>;
   }
 
   async authCanI(opts: { verb: string; name?: string; namespace?: string }): Promise<boolean> {
@@ -105,7 +105,7 @@ export class CapsuleClient<T> {
       'selfsubjectaccessreviews',
     ].join('/');
 
-    const result = await consoleFetchJSON.post(ssarUrl, {
+    const result = (await consoleFetchJSON.post(ssarUrl, {
       apiVersion: 'authorization.k8s.io/v1',
       kind: 'SelfSubjectAccessReview',
       spec: {
@@ -118,8 +118,8 @@ export class CapsuleClient<T> {
           verb: opts.verb,
         },
       },
-    });
-    return result.status.allowed ?? false;
+    })) as { status?: { allowed?: boolean } };
+    return result.status?.allowed ?? false;
   }
 
   getDetailUrl(name: string, namespace?: string) {
@@ -180,24 +180,6 @@ export interface Tenant {
 
 export type ResourceQuantity = Record<string, string>;
 
-export function addQuantity(a: string | undefined, b: string | undefined): string {
-  if (!a) return b ?? '0';
-  if (!b || b === '0') return a;
-  const milliRe = /^(\d+(?:\.\d+)?)m$/;
-  const binaryRe = /^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei)$/;
-  const plainRe = /^(\d+(?:\.\d+)?)$/;
-  const am = milliRe.exec(a),
-    bm = milliRe.exec(b);
-  const ab = binaryRe.exec(a),
-    bb = binaryRe.exec(b);
-  const ap = plainRe.exec(a),
-    bp = plainRe.exec(b);
-  if (am && bm) return `${parseFloat(am[1]) + parseFloat(bm[1])}m`;
-  if (ab && ab[2] === bb?.[2]) return `${parseFloat(ab[1]) + parseFloat(bb[1])}${ab[2]}`;
-  if (ap && bp) return String(parseFloat(ap[1]) + parseFloat(bp[1]));
-  return a;
-}
-
 export interface GlobalResourceQuotaCondition {
   type: string;
   status: 'True' | 'False' | 'Unknown';
@@ -228,12 +210,12 @@ export interface GlobalResourceQuota {
     namespaces?: string[];
     namespaceCount?: number;
     namespaceUsage?: Record<string, { used?: ResourceQuantity }>;
-    total: {
+    total?: {
       hard?: ResourceQuantity;
       used?: ResourceQuantity;
       available?: ResourceQuantity;
     };
-    conditions: GlobalResourceQuotaCondition[];
+    conditions?: GlobalResourceQuotaCondition[];
     observedGeneration?: number;
   };
 }

@@ -34,6 +34,14 @@ export default tseslint.config(
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       '@typescript-eslint/consistent-type-imports': 'error',
+      // `recommended-latest` pulls in the experimental "React Compiler" rule set. This one
+      // flags any setState call in an effect body that isn't inside an async callback,
+      // which includes the standard "reset loading/error, then fetch" pattern used by every
+      // data-fetching page in this plugin (an effect use case the React docs endorse:
+      // https://react.dev/learn/you-might-not-need-an-effect#fetching-data). Off rather than
+      // reworking every page's state shape to dodge a compiler-oriented heuristic this repo
+      // doesn't otherwise opt into.
+      'react-hooks/set-state-in-effect': 'off',
     },
     languageOptions: {
       globals: globals.browser,
