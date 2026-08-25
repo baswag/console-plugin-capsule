@@ -1,90 +1,66 @@
-# OpenShift console plugin template
+# OpenShift Console Plugin for Capsule
 
-This project is a minimal template for writing a new OpenShift Console dynamic
-plugin.
+This plugin adds Capsule multi-tenancy management to the OpenShift web console.
+[Capsule](https://capsule.clastix.io) adds multi-tenancy and policy control to Kubernetes and
+OpenShift. The plugin lets a cluster administrator view and manage Capsule tenants directly in
+the OpenShift Console.
 
-[Openshift console plugins](https://github.com/openshift/console/tree/main/frontend/packages/console-dynamic-plugin-sdk)
-allow you to extend the [OpenShift web console](https://github.com/openshift/console)
-at runtime, adding custom pages and other extensions. They are based on
-[webpack module federation](https://webpack.js.org/concepts/module-federation/).
-Plugins are registered with console using the `ConsolePlugin` custom resource
-and enabled in the console operator config by a cluster administrator.
+The plugin is an
+[OpenShift Console dynamic plugin](https://github.com/openshift/console/tree/main/frontend/packages/console-dynamic-plugin-sdk).
+A dynamic plugin adds custom pages to the console at runtime. Console loads the plugin through
+[webpack module federation](https://webpack.js.org/concepts/module-federation/). A cluster
+administrator registers the plugin with a `ConsolePlugin` custom resource and enables it in the
+console operator config.
 
-The `main` branch of this repository contains an example plugin which works
-with the latest version. To see an example of a plugin which works with an older
-version, visit the appropriate `release-4.x` branch.
+The plugin sends requests to the cluster through the `capsule-proxy` service. `capsule-proxy` is
+a component of Capsule. You must install Capsule and `capsule-proxy` on the cluster before you
+use this plugin.
 
-[Node.js](https://nodejs.org/en/) and [yarn](https://yarnpkg.com) are required
-to build and run the example. To run OpenShift console in a container, either
-[Docker](https://www.docker.com) or [podman 3.2.0+](https://podman.io) and
-[oc](https://console.redhat.com/openshift/downloads) are required.
+## Features
 
-## Getting started
+The plugin adds a **Capsule** section to the Administrator perspective of the OpenShift Console.
+The section contains these pages:
 
-> [!IMPORTANT]
-> To use this template, **DO NOT FORK THIS REPOSITORY**! Click **Use this template**, then select
-> [**Create a new repository**](https://github.com/new?template_name=console-plugin-capsule&template_owner=openshift)
-> to create a new repository.
->
-> ![A screenshot showing where the "Use this template" button is located](https://i.imgur.com/AhaySbU.png)
->
-> **Forking this repository** for purposes outside of contributing to this repository
-> **will cause issues**, as users cannot have more than one fork of a template repository
-> at a time. This could prevent future users from forking and contributing to your plugin.
->
-> Your fork would also behave like a template repository, which might be confusing for
-> contributiors, because it is not possible for repositories generated from a template
-> repository to contribute back to the template.
+| Page | Route | Description |
+| --- | --- | --- |
+| Tenants | `/capsule-tenants` | Lists Capsule tenants, with their state, namespace count, and owners. |
+| Tenant Namespaces | `/capsule-namespaces` | Lists namespaces that belong to tenants. Creates and deletes tenant namespaces. |
+| Tenant Namespace detail | `/capsule-namespaces/:name` | Shows namespace metadata, a labels and annotations editor, and resource quota usage. |
+| Global Resource Quotas | `/capsule-global-resource-quotas` | Lists Capsule `GlobalResourceQuota` resources and their status. |
+| Global Resource Quota detail | `/capsule-global-resource-quotas/:name` | Shows quota usage for each namespace in a `GlobalResourceQuota`. |
+| Tenant Resources | `/capsule-tenant-resources` | Lists Capsule `TenantResource` resources for each tenant. |
 
-After cloning your instantiated repository, you must update the plugin metadata, such as the
-plugin name in the `consolePlugin` declaration of [package.json](package.json).
+## Requirements
 
-```json
-"consolePlugin": {
-  "name": "console-plugin-capsule",
-  "version": "0.0.6",
-  "displayName": "My Plugin",
-  "description": "Enjoy this shiny, new console plugin!",
-  "exposedModules": {
-    "ExamplePage": "./components/ExamplePage"
-  },
-  "dependencies": {
-    "@console/pluginAPI": "*"
-  }
-}
-```
-
-The template adds a single example page in the Home navigation section. The
-extension is declared in the [console-extensions.json](console-extensions.json)
-file and the React component is declared in
-[src/components/ExamplePage.tsx](src/components/ExamplePage.tsx).
-
-You can run the plugin using a local development environment or build an image
-to deploy it to a cluster.
+- An OpenShift cluster at version 4.20, or a compatible version.
+- [Capsule](https://projectcapsule.dev) and `capsule-proxy` installed on the cluster.
+- [Node.js](https://nodejs.org/en/) and [yarn](https://yarnpkg.com) to build the plugin.
+- [Docker](https://www.docker.com) or [podman 3.2.0+](https://podman.io), and
+  [oc](https://console.redhat.com/openshift/downloads), to run the console in a container.
 
 ## Development
 
 ### Option 1: Local
 
-In one terminal window, run:
+Open one terminal window and run these commands:
 
 1. `yarn install`
 2. `yarn run start`
 
-In another terminal window, run:
+Open a second terminal window and run these commands:
 
-1. `oc login` (requires [oc](https://console.redhat.com/openshift/downloads) and an [OpenShift cluster](https://console.redhat.com/openshift/create))
-2. `yarn run start-console` (requires [Docker](https://www.docker.com) or [podman 3.2.0+](https://podman.io))
+1. `oc login` (log in to an OpenShift cluster that has Capsule installed)
+2. `yarn run start-console` (requires Docker or podman 3.2.0+)
 
-This will run the OpenShift console in a container connected to the cluster
-you've logged into. The plugin HTTP server runs on port 9001 with CORS enabled.
-Navigate to <http://localhost:9000/example> to see the running plugin.
+These commands start the OpenShift Console in a container. The container connects to the
+cluster you logged into. The plugin HTTP server runs on port 9001, with CORS enabled. Go to
+<http://localhost:9000/capsule-tenants> to see the plugin.
 
-#### Running start-console with Apple silicon and podman
+#### Run start-console with Apple silicon and podman
 
-If you are using podman on a Mac with Apple silicon, `yarn run start-console`
-might fail since it runs an amd64 image. You can workaround the problem with
-[qemu-user-static](https://github.com/multiarch/qemu-user-static) by running
+If you use podman on a Mac with Apple silicon hardware, `yarn run start-console` can fail. The
+command runs an amd64 image. Use
+[qemu-user-static](https://github.com/multiarch/qemu-user-static) to solve this problem. Run
 these commands:
 
 ```bash
@@ -94,137 +70,139 @@ rpm-ostree install qemu-user-static
 systemctl reboot
 ```
 
-### Option 2: Docker + VSCode Remote Container
+### Option 2: Docker + VS Code Remote Container
 
-Make sure the
+Install the
 [Remote Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-extension is installed. This method uses Docker Compose where one container is
-the OpenShift console and the second container is the plugin. It requires that
-you have access to an existing OpenShift cluster. After the initial build, the
-cached containers will help you start developing in seconds.
+extension in VS Code. This method uses Docker Compose. One container runs the OpenShift
+Console. The other container runs the plugin. You need access to an OpenShift cluster that has
+Capsule installed. After the first build, the containers start in a few seconds.
 
-1. Create a `dev.env` file inside the `.devcontainer` folder with the correct values for your cluster:
+1. Create a `dev.env` file in the `.devcontainer` folder. Add the correct values for your
+   cluster:
 
-```bash
-OC_PLUGIN_NAME=console-plugin-capsule
-OC_URL=https://api.example.com:6443
-OC_USER=kubeadmin
-OC_PASS=<password>
-```
+   ```bash
+   OC_PLUGIN_NAME=console-plugin-capsule
+   OC_URL=https://api.example.com:6443
+   OC_USER=kubeadmin
+   OC_PASS=<password>
+   ```
 
-2. `(Ctrl+Shift+P) => Remote Containers: Open Folder in Container...`
-3. `yarn run start`
-4. Navigate to <http://localhost:9000/example>
+2. Press `Ctrl+Shift+P` and select `Remote Containers: Open Folder in Container...`.
+3. Run `yarn run start`.
+4. Go to <http://localhost:9000/capsule-tenants>.
 
 ## Docker image
 
-Before you can deploy your plugin on a cluster, you must build an image and
-push it to an image registry.
+Build an image and push it to an image registry before you deploy the plugin to a cluster.
 
 1. Build the image:
 
    ```sh
-   docker build -t quay.io/my-repository/my-plugin:latest .
+   docker build -t ghcr.io/baswag/console-plugin-capsule:latest .
    ```
 
 2. Run the image:
 
    ```sh
-   docker run -it --rm -d -p 9001:80 quay.io/my-repository/my-plugin:latest
+   docker run -it --rm -d -p 9001:80 ghcr.io/baswag/console-plugin-capsule:latest
    ```
 
 3. Push the image:
 
    ```sh
-   docker push quay.io/my-repository/my-plugin:latest
+   docker push ghcr.io/baswag/console-plugin-capsule:latest
    ```
 
-NOTE: If you have a Mac with Apple silicon, you will need to add the flag
-`--platform=linux/amd64` when building the image to target the correct platform
-to run in-cluster.
+NOTE: On a Mac with Apple silicon hardware, add the flag `--platform=linux/amd64` when you
+build the image. This flag targets the correct platform for the cluster.
 
 ## Deployment on cluster
 
-A [Helm](https://helm.sh) chart is available to deploy the plugin to an OpenShift environment.
+A [Helm](https://helm.sh) chart deploys the plugin to an OpenShift cluster.
 
-The following Helm parameters are required:
+The `plugin.image` parameter is required. It is the location of the image that you pushed in
+the previous step.
 
-`plugin.image`: The location of the image containing the plugin that was previously pushed
+The chart connects to `capsule-proxy` at `capsule-proxy.capsule-system:9001` by default. Set
+`capsule.proxy.serviceName`, `capsule.proxy.serviceNamespace`, and `capsule.proxy.servicePort`
+if your cluster uses a different location.
 
-Additional parameters can be specified if desired. Consult the chart [values](charts/openshift-console-plugin/values.yaml) file for the full set of supported parameters.
+See the chart [values file](charts/openshift-console-plugin/values.yaml) for the full list of
+parameters.
 
-### Installing the Helm Chart
+### Install the Helm chart
 
-Install the chart using the name of the plugin as the Helm release name into a new namespace or an existing namespace as specified by the `plugin_console-plugin-capsule` parameter and providing the location of the image within the `plugin.image` parameter by using the following command:
+Run this command to install the chart:
 
 ```shell
-helm upgrade -i  my-plugin charts/openshift-console-plugin -n my-namespace --create-namespace --set plugin.image=my-plugin-image-location
+helm upgrade -i console-plugin-capsule charts/openshift-console-plugin \
+  -n console-plugin-capsule --create-namespace \
+  --set plugin.image=ghcr.io/baswag/console-plugin-capsule:0.0.6
 ```
-
-NOTE: When deploying on OpenShift 4.10, it is recommended to add the parameter `--set plugin.securityContext.enabled=false` which will omit configurations related to Pod Security.
-
-NOTE: When defining i18n namespace, adhere `plugin__<name-of-the-plugin>` format. The name of the plugin should be extracted from the `consolePlugin` declaration within the [package.json](package.json) file.
 
 ## i18n
 
-The plugin template demonstrates how you can translate messages in with [react-i18next](https://react.i18next.com/). The i18n namespace must match
-the name of the `ConsolePlugin` resource with the `plugin__` prefix to avoid
-naming conflicts. For example, the plugin template uses the
-`plugin__console-plugin-capsule` namespace. You can use the `useTranslation` hook
-with this namespace as follows:
+The plugin uses [react-i18next](https://react.i18next.com/) to translate messages. The i18n
+namespace must match the name of the `ConsolePlugin` resource, with a `plugin__` prefix. This
+plugin uses the `plugin__console-plugin-capsule` namespace. Use the `useTranslation` hook with
+this namespace:
 
 ```tsx
 const Header: React.FC = () => {
   const { t } = useTranslation('plugin__console-plugin-capsule');
-  return <h1>{t('Hello, World!')}</h1>;
+  return <h1>{t('Tenants')}</h1>;
 };
 ```
 
-For labels in `console-extensions.json`, you can use the format
-`%plugin__console-plugin-capsule~My Label%`. Console will replace the value with
-the message for the current language from the `plugin__console-plugin-capsule`
-namespace. For example:
+For labels in `console-extensions.json`, use the format
+`%plugin__console-plugin-capsule~My Label%`. Console replaces the value with the message for
+the current language, from the `plugin__console-plugin-capsule` namespace. For example:
 
 ```json
-  {
-    "type": "console.navigation/section",
-    "properties": {
-      "id": "admin-demo-section",
-      "perspective": "admin",
-      "name": "%plugin__console-plugin-capsule~Plugin Template%"
-    }
+{
+  "type": "console.navigation/href",
+  "properties": {
+    "id": "capsule-tenants",
+    "name": "%plugin__console-plugin-capsule~Tenants%",
+    "href": "/capsule-tenants",
+    "perspective": "admin",
+    "section": "capsule"
   }
+}
 ```
 
-Running `yarn i18n` updates the JSON files in the `locales` folder of the
-plugin template when adding or changing messages.
+Run `yarn i18n` to update the JSON files in the `locales` folder after you add or change
+messages.
 
 ## Linting
 
-This project adds prettier, eslint, and stylelint. Linting can be run with
-`yarn run lint`.
+This project uses prettier, eslint, and stylelint. Run `yarn run lint` to check and fix the
+code.
 
-The stylelint config disallows defining colors since these cause problems with dark
-mode. Use [PatternFly semantic tokens](https://www.patternfly.org/tokens/all-patternfly-tokens)
-for colors instead.
+The stylelint config does not allow hex colors, because hex colors break dark mode. Use
+[PatternFly semantic tokens](https://www.patternfly.org/tokens/all-patternfly-tokens) for
+colors instead.
 
-The stylelint config also disallows naked element selectors like `table` and
-`.pf-` or `.co-` prefixed classes. This prevents plugins from accidentally
-overwriting default console styles, breaking the layout of existing pages. The
-best practice is to prefix your CSS class names with your plugin name to avoid
-conflicts. Please don't disable these rules without understanding how they can
-break console styles!
+The stylelint config also does not allow naked element selectors, such as `table`, and does not
+allow `.pf-` or `.co-` prefixed classes. This rule stops the plugin from overwriting default
+console styles and breaking the layout of other pages. Prefix your CSS class names with the
+plugin name to avoid conflicts. Do not disable these rules unless you understand how they can
+break the console styles.
 
-## Reporting
+## Testing
 
-Steps to generate reports
+Run `yarn test` to run the Jest unit tests.
 
-1. In command prompt, navigate to root folder and execute the command `yarn run cypress-merge`
-2. Then execute command `yarn run cypress-generate`
-The cypress-report.html file is generated and should be in (/integration-tests/screenshots) directory.
+Run `yarn test-e2e-headless` to run the Playwright end-to-end tests in headless mode. Run
+`yarn test-e2e` to run the same tests in headed mode.
+
+Playwright writes an HTML report to `integration-tests/results/html` and a JUnit report to
+`integration-tests/results/junit-results.xml`.
 
 ## References
 
+- [Capsule](https://projectcapsule.dev)
+- [Capsule GitHub repository](https://github.com/clastix/capsule)
 - [Console Plugin SDK README](https://github.com/openshift/console/tree/main/frontend/packages/console-dynamic-plugin-sdk)
-- [Customization Plugin Example](https://github.com/spadgett/console-customization-plugin)
 - [Dynamic Plugin Enhancement Proposal](https://github.com/openshift/enhancements/blob/master/enhancements/console/dynamic-plugins.md)
