@@ -400,6 +400,10 @@ export default function TenantNamespacesPage() {
       {createModalOpen && (
         <CreateNamespaceModal
           tenant={selectedTenant}
+          forceTenantPrefix={
+            tenants.find((tenant) => tenant.metadata.name === selectedTenant)?.spec
+              .forceTenantPrefix ?? false
+          }
           onClose={() => {
             setCreateModalOpen(false);
           }}

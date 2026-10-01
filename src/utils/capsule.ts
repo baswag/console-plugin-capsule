@@ -170,6 +170,7 @@ export interface Tenant {
   metadata: V1ObjectMetaString;
   spec: {
     owners?: TenantOwner[];
+    forceTenantPrefix?: boolean;
   };
   status?: {
     namespaces?: string[];

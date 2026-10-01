@@ -8,6 +8,9 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
+  InputGroup,
+  InputGroupItem,
+  InputGroupText,
   Modal,
   ModalBody,
   ModalFooter,
@@ -30,6 +33,8 @@ const namespacesApi = new CapsuleClient<V1NamespaceString>({
 
 interface CreateNamespaceModalProps {
   tenant: string;
+  /** When set, the namespace name is forced to `<tenant>-<suffix>` and only the suffix is editable. */
+  forceTenantPrefix: boolean;
   onClose: () => void;
 
   onCreated: (name: string) => void;
@@ -37,16 +42,19 @@ interface CreateNamespaceModalProps {
 
 export default function CreateNamespaceModal({
   tenant,
+  forceTenantPrefix,
   onClose,
   onCreated,
 }: CreateNamespaceModalProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
-  const [name, setName] = useState('');
+  const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isValid = NS_PATTERN.test(name);
-  const showValidation = name.length > 0 && !isValid;
+  const prefix = forceTenantPrefix ? `${tenant}-` : '';
+  const name = `${prefix}${input}`;
+  const isValid = input.length > 0 && NS_PATTERN.test(name);
+  const showValidation = input.length > 0 && !isValid;
 
   const handleSubmit = () => {
     if (!isValid) return;
@@ -99,21 +107,48 @@ export default function CreateNamespaceModal({
           }}
         >
           <FormGroup label={t('Name')} isRequired fieldId="ns-name">
-            <TextInput
-              id="ns-name"
-              value={name}
-              onChange={(_e, val) => {
-                setName(val);
-              }}
-              validated={showValidation ? 'error' : 'default'}
-              autoFocus
-            />
+            {forceTenantPrefix ? (
+              <InputGroup>
+                <InputGroupText id="ns-name-prefix">{prefix}</InputGroupText>
+                <InputGroupItem isFill>
+                  <TextInput
+                    id="ns-name"
+                    aria-describedby="ns-name-prefix"
+                    value={input}
+                    onChange={(_e, val) => {
+                      setInput(val);
+                    }}
+                    validated={showValidation ? 'error' : 'default'}
+                    autoFocus
+                  />
+                </InputGroupItem>
+              </InputGroup>
+            ) : (
+              <TextInput
+                id="ns-name"
+                value={input}
+                onChange={(_e, val) => {
+                  setInput(val);
+                }}
+                validated={showValidation ? 'error' : 'default'}
+                autoFocus
+              />
+            )}
+            {forceTenantPrefix && !showValidation && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>
+                    {t('This tenant requires namespaces to be prefixed with the tenant name.')}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
             {showValidation && (
               <FormHelperText>
                 <HelperText>
                   <HelperTextItem variant="error">
                     {t(
-                      'Must be lowercase alphanumeric characters or hyphens, and start/end with an alphanumeric character.',
+                      'Must be lowercase alphanumeric characters or hyphens, start/end with an alphanumeric character, and be at most 63 characters long.',
                     )}
                   </HelperTextItem>
                 </HelperText>
