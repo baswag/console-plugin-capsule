@@ -75,4 +75,31 @@ test.describe('Capsule console plugin', () => {
     await expect(page).toHaveURL(/\/capsule-tenants/);
     await expect(page).toHaveTitle(/Tenants/);
   });
+
+  test('Shows an Extensions column when an addon targets tenant rows', async ({ page }) => {
+    const addonsUrl = '**/api/plugins/console-plugin-capsule/addons';
+    await page.route(`${addonsUrl}/index.json`, (route) =>
+      route.fulfill({ json: { addons: ['e2e'] } }),
+    );
+    await page.route(`${addonsUrl}/e2e/manifest.json`, (route) =>
+      route.fulfill({
+        json: {
+          apiVersion: 'console-plugin-capsule/addons/v1',
+          widgets: [
+            {
+              type: 'labelValue',
+              id: 'expiry',
+              slot: 'tenant.row',
+              key: 'e2e.example.com/expires',
+              format: { type: 'date' },
+              emptyText: 'No expiry',
+            },
+          ],
+        },
+      }),
+    );
+
+    await page.goto('/capsule-tenants');
+    await expect(page.getByRole('columnheader', { name: 'Extensions' })).toBeVisible();
+  });
 });

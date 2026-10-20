@@ -8,8 +8,11 @@ interface FetchOptions {
   method?: 'POST' | 'GET' | 'DELETE';
 }
 
+/** Console proxy to capsule-proxy (see the ConsolePlugin's `proxy` alias `capsule`). */
+export const CAPSULE_PROXY_BASE = '/api/proxy/plugin/console-plugin-capsule/capsule';
+
 export class CapsuleClient<T> {
-  private proxyBase = '/api/proxy/plugin/console-plugin-capsule/capsule';
+  private proxyBase = CAPSULE_PROXY_BASE;
   constructor(
     private resource: {
       apiGroup: string;

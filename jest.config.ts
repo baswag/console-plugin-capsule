@@ -18,6 +18,9 @@ const config: Config = {
           noInterop: true,
         },
         minify: false,
+        // Same JSX runtime as the webpack build (webpack.config.ts), so component specs
+        // don't need `import React`.
+        jsc: { transform: { react: { runtime: 'automatic' } } },
       },
     ],
   },

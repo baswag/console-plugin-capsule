@@ -30,6 +30,11 @@ The section contains these pages:
 | Global Resource Quota detail | `/capsule-global-resource-quotas/:name` | Shows quota usage for each namespace in a `GlobalResourceQuota`. |
 | Tenant Resources | `/capsule-tenant-resources` | Lists Capsule `TenantResource` resources for each tenant. |
 
+You can add cluster-specific widgets to the tenant namespace page and the Tenants table
+without rebuilding the plugin. Examples are label toggles for platform features, or an expiry
+date read from a label. Mount the widgets as [addons](docs/addons.md) from a ConfigMap, a PVC
+or an OCI image volume.
+
 ## Requirements
 
 - An OpenShift cluster at version 4.20, or a compatible version.
@@ -141,6 +146,9 @@ helm upgrade -i console-plugin-capsule charts/openshift-console-plugin \
   --set plugin.image.registry=ghcr.io/baswag/console-plugin-capsule \
   --set plugin.image.version=0.0.6
 ```
+
+To add addons, set `plugin.addons`. See [docs/addons.md](docs/addons.md) and
+[examples/k8s/values-addons.yaml](examples/k8s/values-addons.yaml).
 
 ## i18n
 

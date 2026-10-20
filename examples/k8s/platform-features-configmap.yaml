@@ -1,0 +1,46 @@
+# Ships examples/addons/platform-features as a ConfigMap in the plugin's namespace. Recreate it
+# from the directory after edits:
+#   oc create configmap capsule-addon-platform-features -n console-plugin-capsule \
+#     --from-file=examples/addons/platform-features --dry-run=client -o yaml | oc apply -f -
+# and reference it from the chart, see values-addons.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: capsule-addon-platform-features
+  namespace: console-plugin-capsule
+data:
+  manifest.json: |
+    {
+      "apiVersion": "console-plugin-capsule/addons/v1",
+      "widgets": [
+        {
+          "type": "labelToggle",
+          "id": "backup",
+          "slot": "namespace.detail",
+          "title": "Backup",
+          "icon": "pf:database",
+          "key": "platform.example.com/backup",
+          "onValue": "enabled",
+          "text": {
+            "on": { "alt": "Backup enabled", "tooltip": "Nightly backups are active for {{name}}" },
+            "off": { "alt": "Backup disabled", "tooltip": "No backups are taken for {{name}}" },
+            "noPermission": "Only members of this tenant can change this"
+          },
+          "confirm": {
+            "enable": "Enable nightly backups for {{name}}?",
+            "disable": "Disable backups for {{name}}? Existing backups are kept."
+          }
+        },
+        {
+          "type": "labelValue",
+          "id": "expiry",
+          "slot": "tenant.row",
+          "title": "Expiry",
+          "icon": "pf:hourglass-half",
+          "key": "platform.example.com/expires",
+          "format": { "type": "date", "input": "YYYY-MM-DD", "display": "DD.MM.YYYY" },
+          "text": "Expires {{value}}",
+          "warnDays": 14
+        }
+      ]
+    }

@@ -1,0 +1,6 @@
+{
+  "apiVersion": "console-plugin-capsule/addons/v1",
+  "widgets": [
+    { "type": "module", "id": "pods", "slot": "namespace.detail", "module": "index.js", "config": { "warnAbove": 50 } }
+  ]
+}

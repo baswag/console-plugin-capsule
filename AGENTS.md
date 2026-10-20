@@ -81,6 +81,8 @@ src/
                         # supporting modals/tables)
     *.css            # Component styles (scoped with plugin prefix)
   utils/               # CapsuleClient API client, shared formatting/quota helpers
+  addons/              # Runtime addon system: loads addons/<name>/manifest.json mounted
+                        # into the pod (see docs/addons.md), AddonSlot + widgets
 console-extensions.json # Plugin extension declarations
 package.json           # Plugin metadata in consolePlugin section
 tsconfig.json          # TypeScript config (strict: true)
@@ -88,6 +90,8 @@ webpack.config.ts      # Module federation + build config
 locales/               # i18n translation files
 charts/                # Helm chart for deployment
 integration-tests/     # Playwright e2e tests
+docs/addons.md         # Addon manifest reference (keep in sync with src/addons/types.ts)
+examples/addons/       # Example addons; validated by src/addons/manifest.spec.ts
 ```
 
 ## Development Workflow

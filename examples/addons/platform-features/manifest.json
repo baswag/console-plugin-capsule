@@ -1,0 +1,161 @@
+{
+  "apiVersion": "console-plugin-capsule/addons/v1",
+  "widgets": [
+    {
+      "type": "labelToggle",
+      "id": "backup",
+      "slot": "namespace.detail",
+      "title": {
+        "en": "Backup",
+        "de": "Sicherung"
+      },
+      "icon": "pf:database",
+      "key": "platform.example.com/backup",
+      "onValue": "enabled",
+      "text": {
+        "on": {
+          "alt": {
+            "en": "Backup enabled",
+            "de": "Sicherung aktiv"
+          },
+          "tooltip": {
+            "en": "Nightly backups are active for {{name}}",
+            "de": "Nächtliche Sicherung für {{name}} ist aktiv"
+          }
+        },
+        "off": {
+          "alt": {
+            "en": "Backup disabled",
+            "de": "Sicherung inaktiv"
+          },
+          "tooltip": {
+            "en": "No backups are taken for {{name}}",
+            "de": "Für {{name}} werden keine Sicherungen erstellt"
+          }
+        },
+        "noPermission": {
+          "en": "Only members of this tenant can change this",
+          "de": "Nur Mitglieder dieses Tenants können das ändern"
+        }
+      },
+      "confirm": {
+        "enable": {
+          "en": "Enable nightly backups for {{name}}?",
+          "de": "Nächtliche Sicherung für {{name}} aktivieren?"
+        },
+        "disable": {
+          "en": "Disable backups for {{name}}? Existing backups are kept.",
+          "de": "Sicherung für {{name}} deaktivieren? Vorhandene Sicherungen bleiben erhalten."
+        }
+      }
+    },
+    {
+      "type": "labelToggle",
+      "id": "monitoring",
+      "slot": "namespace.detail",
+      "title": "User workload monitoring",
+      "icon": "pf:chart-line",
+      "key": "openshift.io/user-monitoring",
+      "onValue": "true",
+      "offValue": "false",
+      "confirm": false
+    },
+    {
+      "type": "labelToggle",
+      "id": "gpu",
+      "slot": "namespace.detail",
+      "title": "GPU nodes",
+      "icon": "gpu.svg",
+      "iconMode": "mask",
+      "key": "platform.example.com/gpu",
+      "match": "exists",
+      "text": {
+        "on": {
+          "alt": "GPU nodes allowed"
+        },
+        "off": {
+          "alt": "GPU nodes not allowed"
+        }
+      }
+    },
+    {
+      "type": "labelToggle",
+      "id": "egress-lock",
+      "slot": "namespace.detail",
+      "title": "Egress lock",
+      "icon": {
+        "on": "pf:lock",
+        "off": "pf:lock-open"
+      },
+      "key": "platform.example.com/egress-locked",
+      "match": "exists",
+      "text": {
+        "on": {
+          "alt": "Egress traffic blocked"
+        },
+        "off": {
+          "alt": "Egress traffic allowed"
+        }
+      }
+    },
+    {
+      "type": "labelToggle",
+      "id": "network-zone",
+      "slot": "namespace.detail",
+      "title": "DMZ network zone",
+      "icon": "pf:shield-alt",
+      "key": "platform.example.com/dmz",
+      "readOnly": true,
+      "text": {
+        "on": {
+          "alt": "In the DMZ network zone"
+        },
+        "off": {
+          "alt": "Not in the DMZ network zone"
+        },
+        "readOnly": "Assigned by the network team; open a ticket to change it"
+      }
+    },
+    {
+      "type": "labelValue",
+      "id": "expiry",
+      "slot": "tenant.row",
+      "title": "Expiry",
+      "icon": "pf:hourglass-half",
+      "key": "platform.example.com/expires",
+      "format": {
+        "type": "date",
+        "input": "YYYY-MM-DD",
+        "display": {
+          "dateStyle": "medium"
+        }
+      },
+      "text": {
+        "en": "Expires {{value}}",
+        "de": "Läuft ab am {{value}}"
+      },
+      "tooltip": {
+        "en": "Tenant {{name}} expires in {{days}} days",
+        "de": "Tenant {{name}} läuft in {{days}} Tagen ab"
+      },
+      "warnDays": 14
+    },
+    {
+      "type": "labelValue",
+      "id": "expiry-namespace",
+      "slot": "namespace.detail",
+      "icon": "pf:hourglass-half",
+      "source": "annotation",
+      "key": "platform.example.com/expires-at",
+      "format": {
+        "type": "date",
+        "input": "iso",
+        "display": "DD.MM.YYYY HH:mm",
+        "timezone": "local"
+      },
+      "text": "Expires {{value}}",
+      "emptyText": "No expiry date",
+      "warnDays": 7
+    }
+  ]
+}

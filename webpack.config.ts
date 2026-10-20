@@ -66,7 +66,20 @@ const config: Configuration = {
     ],
   },
   devServer: {
-    static: './dist',
+    static: [
+      './dist',
+      // Serve addons during development, e.g. CAPSULE_ADDONS_DIR=examples/addons yarn start.
+      // In the cluster they are mounted by the Helm chart (plugin.addons).
+      ...(process.env.CAPSULE_ADDONS_DIR
+        ? [
+            {
+              directory: path.resolve(__dirname, process.env.CAPSULE_ADDONS_DIR),
+              publicPath: '/addons',
+              watch: true,
+            },
+          ]
+        : []),
+    ],
     port: 9001,
     // Allow Bridge running in a container to connect to the plugin dev server.
     allowedHosts: 'all',

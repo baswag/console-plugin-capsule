@@ -6,6 +6,8 @@ metadata:
   labels:
     {{- include "openshift-console-plugin.labels" . | nindent 4 }}
 data:
+  # Read by the plugin at runtime to discover the addons mounted below addons/.
+  addons-index.json: {{ include "openshift-console-plugin.addonsIndex" . | quote }}
   custom.conf: |
     server {
       listen              {{ .Values.plugin.port }} ssl;
@@ -23,5 +25,11 @@ data:
         sub_filter_types *;
         sub_filter '__CAPSULE_SECTION_NAME__' '{{ .Values.plugin.sectionName }}';
         sub_filter_once on;
+      }
+
+      # Addons are mounted from volumes and can change without a new image, so browsers
+      # must revalidate instead of caching them.
+      location /addons/ {
+        add_header Cache-Control "no-cache" always;
       }
     }

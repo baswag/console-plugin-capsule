@@ -29,6 +29,8 @@ import { CapsuleClient, CAPSULE_APIS } from '../utils/capsule';
 import type { GlobalResourceQuota } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { UsageGauge } from '../utils/common';
+import { AddonSlot } from '../addons/AddonSlot';
+import { useAddonWidgets } from '../addons/registry';
 import EditLabelsModal from './EditLabelsModal';
 import EditAnnotationsModal, { visibleAnnotations } from './EditAnnotationsModal';
 import './Gauges.css';
@@ -68,6 +70,8 @@ export default function TenantNamespaceDetailPage() {
   const [grqsError, setGrqsError] = useState<string | null>(null);
   const [grqSelectOpen, setGrqSelectOpen] = useState(false);
   const [selectedGrqName, setSelectedGrqName] = useState('');
+
+  const { widgets: addonWidgets } = useAddonWidgets('namespace.detail');
 
   useEffect(() => {
     if (!name) return;
@@ -223,6 +227,20 @@ export default function TenantNamespaceDetailPage() {
         </div>
         <span>{t('{{count}} annotation', { count: annotationCount })}</span>
       </PageSection>
+
+      {namespace && addonWidgets.length > 0 && (
+        <PageSection>
+          <Content component="h2" className="console-plugin-capsule__section-title">
+            {t('Extensions')}
+          </Content>
+          <AddonSlot
+            slot="namespace.detail"
+            resource={namespace}
+            widgets={addonWidgets}
+            onUpdated={setNamespace}
+          />
+        </PageSection>
+      )}
 
       <PageSection className="console-plugin-capsule__table-section">
         <Content component="h2" className="console-plugin-capsule__section-title">

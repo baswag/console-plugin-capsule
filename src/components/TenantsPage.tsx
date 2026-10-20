@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,10 +21,15 @@ import type { Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import { tenantNamespaceCount } from '../utils/common';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
+import { AddonSlot } from '../addons/AddonSlot';
+import { useAddonWidgets } from '../addons/registry';
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
-type ColumnKey = (typeof COLUMN_KEYS)[number];
-const UNSORTABLE: ColumnKey[] = ['owners'];
+type ColumnKey = (typeof COLUMN_KEYS)[number] | 'extensions';
+// The "extensions" column is appended last (only when addons target tenant rows), so the
+// indices of the regular columns, which sorting relies on, don't move.
+const COLUMN_KEYS_WITH_EXTENSIONS: readonly ColumnKey[] = [...COLUMN_KEYS, 'extensions'];
+const UNSORTABLE: ColumnKey[] = ['owners', 'extensions'];
 
 const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
 
@@ -74,9 +79,22 @@ export default function TenantsPage() {
       });
   }, [t, refreshToken]);
 
+  const { widgets: addonWidgets } = useAddonWidgets('tenant.row');
+  const hasExtensions = addonWidgets.length > 0;
+  const onTenantUpdated = useCallback((updated: Tenant) => {
+    setTenants((prev) =>
+      prev.map((tn) => (tn.metadata.name === updated.metadata.name ? updated : tn)),
+    );
+  }, []);
+
   const { filtered, filters, onSetFilters } = useNameFilter(tenants);
   const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
-    useSortedPaginated(filtered, COLUMN_KEYS, getSortValue, UNSORTABLE);
+    useSortedPaginated(
+      filtered,
+      hasExtensions ? COLUMN_KEYS_WITH_EXTENSIONS : COLUMN_KEYS,
+      getSortValue,
+      UNSORTABLE,
+    );
 
   const columnLabels: Record<ColumnKey, string> = {
     name: t('Name'),
@@ -84,6 +102,7 @@ export default function TenantsPage() {
     namespaceCount: t('Namespace count'),
     owners: t('Owners'),
     created: t('Created'),
+    extensions: t('Extensions'),
   };
 
   const columns = buildColumns(columnLabels);
@@ -103,6 +122,18 @@ export default function TenantsPage() {
     String(tenantNamespaceCount(tenant.status)),
     (tenant.spec.owners ?? []).map((o) => `${o.name} (${o.kind})`).join(', ') || '—',
     <Timestamp key="ts" timestamp={tenant.metadata.creationTimestamp} />,
+    ...(hasExtensions
+      ? [
+          <AddonSlot
+            key="extensions"
+            slot="tenant.row"
+            resource={tenant}
+            widgets={addonWidgets}
+            onUpdated={onTenantUpdated}
+            compact
+          />,
+        ]
+      : []),
   ]);
 
   const activeState = !loaded

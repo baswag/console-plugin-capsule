@@ -15,6 +15,10 @@ spec:
     metadata:
       labels:
             {{- include "openshift-console-plugin.labels" . | nindent 8 }}
+      annotations:
+        # addons/index.json is mounted via subPath, which doesn't receive ConfigMap updates,
+        # so roll the pods when the config changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       {{- with .Values.plugin.imagePullSecrets }}
       imagePullSecrets:
@@ -40,6 +44,15 @@ spec:
               readOnly: true
               mountPath: /etc/nginx/conf.d/custom.conf
               subPath: custom.conf
+            - name: nginx-conf
+              readOnly: true
+              mountPath: /usr/share/nginx/html/addons/index.json
+              subPath: addons-index.json
+            {{- range .Values.plugin.addons }}
+            - name: addon-{{ .name }}
+              readOnly: true
+              mountPath: /usr/share/nginx/html/addons/{{ .name }}
+            {{- end }}
       volumes:
         - name: {{ template "openshift-console-plugin.certificateSecret" . }}
           secret:
@@ -49,6 +62,10 @@ spec:
           configMap:
             name: {{ template "openshift-console-plugin.name" . }}
             defaultMode: 420
+        {{- range .Values.plugin.addons }}
+        - name: addon-{{ .name }}
+          {{- toYaml .volume | nindent 10 }}
+        {{- end }}
       restartPolicy: Always
       dnsPolicy: ClusterFirst
       {{- if and (.Values.plugin.securityContext.enabled) (.Values.plugin.podSecurityContext) }}

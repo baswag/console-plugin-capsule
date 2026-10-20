@@ -1,0 +1,8 @@
+# helm upgrade -i console-plugin-capsule charts/openshift-console-plugin \
+#   -n console-plugin-capsule -f examples/k8s/values-addons.yaml
+plugin:
+  addons:
+    - name: platform-features
+      volume:
+        configMap:
+          name: capsule-addon-platform-features

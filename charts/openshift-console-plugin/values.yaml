@@ -37,6 +37,21 @@ plugin:
       cpu: 200m
       memory: 200Mi
   basePath: /
+  # Addons add cluster-specific widgets (label toggles, label/annotation badges, custom JS
+  # modules) to the Capsule pages without rebuilding the plugin. Each entry is mounted
+  # read-only at <nginx root>/addons/<name>/ and must contain a manifest.json; `volume` is any
+  # Kubernetes volume source (configMap, persistentVolumeClaim, image, ...).
+  # See docs/addons.md.
+  addons: []
+  # - name: platform-features
+  #   volume:
+  #     configMap:
+  #       name: capsule-addon-platform-features
+  # - name: custom-widgets
+  #   volume:
+  #     image:                       # OCI image volume, needs the ImageVolume feature
+  #       reference: quay.io/example/capsule-addon-custom:1.0.0
+  #       pullPolicy: IfNotPresent
   certificateSecretName: ""
   serviceAccount:
     create: true

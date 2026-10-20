@@ -1,0 +1,73 @@
+.console-plugin-capsule__addons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.console-plugin-capsule__addons--compact {
+  flex-wrap: nowrap;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.console-plugin-capsule__addon-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  border: var(--pf-t--global--border--width--regular) solid
+    var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--sm);
+}
+
+.console-plugin-capsule__addon-toggle--compact {
+  border: none;
+  padding: var(--pf-t--global--spacer--xs);
+}
+
+.console-plugin-capsule__addon-toggle-icon {
+  display: inline-flex;
+}
+
+.console-plugin-capsule__addon-toggle--on {
+  border-color: var(--pf-t--global--border--color--brand--default);
+}
+
+.console-plugin-capsule__addon-toggle--on .console-plugin-capsule__addon-toggle-icon {
+  color: var(--pf-t--global--icon--color--brand--default);
+}
+
+/* Off without its own icon: dimmed and struck through, so the state doesn't rely on colour. */
+.console-plugin-capsule__addon-toggle--decorated .console-plugin-capsule__addon-toggle-icon {
+  position: relative;
+  opacity: 0.5;
+}
+
+.console-plugin-capsule__addon-toggle--decorated .console-plugin-capsule__addon-toggle-icon::after {
+  content: '';
+  position: absolute;
+  inset: 45% -2px auto;
+  border-top: 2px solid var(--pf-t--global--icon--color--regular);
+  transform: rotate(-45deg);
+}
+
+.console-plugin-capsule__addon-toggle-state {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.console-plugin-capsule__addon-img {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+
+.console-plugin-capsule__addon-img--mask {
+  display: inline-block;
+  background-color: currentcolor;
+  mask: var(--console-plugin-capsule-addon-icon) center / contain no-repeat;
+}
+
+.console-plugin-capsule__addon-error {
+  color: var(--pf-t--global--icon--color--status--warning--default);
+}
