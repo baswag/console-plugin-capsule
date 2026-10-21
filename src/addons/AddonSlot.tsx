@@ -6,6 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import type { FallbackProps } from 'react-error-boundary';
 import { SLOT_BINDINGS } from './bindings';
 import { useAddonWidgets } from './registry';
+import { visibleWidgets } from './selector';
 import type { AddonResource, AddonSlotName, LoadedWidget } from './types';
 import { LabelToggle } from './widgets/LabelToggle';
 import { LabelValue } from './widgets/LabelValue';
@@ -68,7 +69,7 @@ export function AddonSlot<R extends AddonResource>({
   widgets: givenWidgets,
 }: AddonSlotProps<R>) {
   const loaded = useAddonWidgets(slot);
-  const widgets = givenWidgets ?? loaded.widgets;
+  const widgets = visibleWidgets(givenWidgets ?? loaded.widgets, resource.metadata.labels);
   const binding = SLOT_BINDINGS[slot];
   const name = resource.metadata.name;
   const needsPermission = needsPatchPermission(widgets);

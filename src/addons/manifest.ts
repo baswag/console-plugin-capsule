@@ -1,3 +1,4 @@
+import { selectorError } from './selector';
 import { ADDON_API_VERSION, ADDON_SLOTS } from './types';
 import type { AddonWidget, AddonSlotName, LoadedWidget } from './types';
 
@@ -43,6 +44,16 @@ function validateWidget(w: unknown): string | null {
     return `unknown slot "${String(w.slot)}"`;
   }
   if (w.title !== undefined && !isLocalizedText(w.title)) return '"title" must be text';
+  if (w.when !== undefined) {
+    const error = selectorError(w.when);
+    if (error) return `"when" ${error}`;
+  }
+  if (w.whenNotMatched !== undefined) {
+    if (w.type !== 'labelToggle') return '"whenNotMatched" is only supported for labelToggle';
+    if (w.whenNotMatched !== 'hide' && w.whenNotMatched !== 'disable') {
+      return '"whenNotMatched" must be "hide" or "disable"';
+    }
+  }
   if (w.iconMode !== undefined && w.iconMode !== 'image' && w.iconMode !== 'mask') {
     return '"iconMode" must be "image" or "mask"';
   }

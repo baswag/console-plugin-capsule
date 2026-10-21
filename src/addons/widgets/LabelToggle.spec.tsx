@@ -171,4 +171,36 @@ describe('LabelToggle', () => {
       expect(button).toHaveClass('console-plugin-capsule__addon-toggle--decorated');
     });
   });
+
+  describe('when (disable mode)', () => {
+    const conditional = {
+      ...widget,
+      when: { matchLabels: { tier: 'premium' } },
+      whenNotMatched: 'disable' as const,
+    };
+
+    it('is disabled with the configured reason when the selector does not match', async () => {
+      const ctx = makeCtx({});
+      render(
+        <LabelToggle
+          widget={{ ...conditional, text: { ...conditional.text, notMatched: 'Premium only' } }}
+          ctx={ctx}
+        />,
+      );
+      const button = screen.getByRole('button', { name: 'Backup disabled' });
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(button);
+      expect(await screen.findByText('Premium only')).toBeInTheDocument();
+      await userEvent.click(button);
+      expect(ctx.patchResource).not.toHaveBeenCalled();
+    });
+
+    it('is enabled when the selector matches', () => {
+      render(<LabelToggle widget={conditional} ctx={makeCtx({ tier: 'premium' })} />);
+      expect(screen.getByRole('button', { name: 'Backup disabled' })).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+  });
 });

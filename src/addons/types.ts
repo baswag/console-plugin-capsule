@@ -28,10 +28,22 @@ export interface StateText {
   tooltip?: LocalizedText;
 }
 
+/** A Kubernetes label selector (`metav1.LabelSelector`). */
+export interface LabelSelector {
+  matchLabels?: Record<string, string>;
+  matchExpressions?: {
+    key: string;
+    operator: 'In' | 'NotIn' | 'Exists' | 'DoesNotExist';
+    values?: string[];
+  }[];
+}
+
 interface WidgetBase {
   id: string;
   slot: AddonSlotName;
   title?: LocalizedText;
+  /** Only show the widget when the object's labels match this selector. */
+  when?: LabelSelector;
   /**
    * How image-file icons are drawn: `"image"` (default) as-is in an `<img>`, or `"mask"` as a
    * monochrome silhouette filled with the current text colour (follows dark mode and the
@@ -61,6 +73,11 @@ export interface LabelToggleWidget extends WidgetBase {
   match?: 'value' | 'exists';
   /** One icon for both states, or `{ "on": …, "off": … }`. */
   icon?: string | StateIcons;
+  /**
+   * What happens when `when` doesn't match: `"hide"` (default) or `"disable"` (shown, not
+   * clickable, with `text.notMatched` in the tooltip).
+   */
+  whenNotMatched?: 'hide' | 'disable';
   /** Never clickable, display only (e.g. the label is managed by automation). */
   readOnly?: boolean;
   text?: {
@@ -68,6 +85,8 @@ export interface LabelToggleWidget extends WidgetBase {
     off?: StateText;
     readOnly?: LocalizedText;
     noPermission?: LocalizedText;
+    /** Tooltip reason when disabled by `when` (with `whenNotMatched: "disable"`). */
+    notMatched?: LocalizedText;
   };
   /** Confirmation prompts; `false` switches immediately without asking. */
   confirm?: { enable?: LocalizedText; disable?: LocalizedText } | false;

@@ -31,6 +31,7 @@ import type { V1NamespaceString } from '../utils/k8s-types';
 import { UsageGauge } from '../utils/common';
 import { AddonSlot } from '../addons/AddonSlot';
 import { useAddonWidgets } from '../addons/registry';
+import { visibleWidgets } from '../addons/selector';
 import EditLabelsModal from './EditLabelsModal';
 import EditAnnotationsModal, { visibleAnnotations } from './EditAnnotationsModal';
 import './Gauges.css';
@@ -228,7 +229,7 @@ export default function TenantNamespaceDetailPage() {
         <span>{t('{{count}} annotation', { count: annotationCount })}</span>
       </PageSection>
 
-      {namespace && addonWidgets.length > 0 && (
+      {namespace && visibleWidgets(addonWidgets, namespace.metadata.labels).length > 0 && (
         <PageSection>
           <Content component="h2" className="console-plugin-capsule__section-title">
             {t('Extensions')}

@@ -82,6 +82,7 @@
   "No resource limits defined.": "No resource limits defined.",
   "No tenant resources found.": "No tenant resources found.",
   "No tenants found.": "No tenants found.",
+  "Not available for {{name}}.": "Not available for {{name}}.",
   "Not Ready": "Not Ready",
   "Off": "Off",
   "On": "On",

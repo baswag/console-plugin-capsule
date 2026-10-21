@@ -75,8 +75,18 @@
         },
         "off": {
           "alt": "GPU nodes not allowed"
+        },
+        "notMatched": {
+          "en": "Only available for premium-tier namespaces",
+          "de": "Nur für Namespaces der Premium-Stufe verfügbar"
         }
-      }
+      },
+      "when": {
+        "matchLabels": {
+          "platform.example.com/tier": "premium"
+        }
+      },
+      "whenNotMatched": "disable"
     },
     {
       "type": "labelToggle",
@@ -96,6 +106,17 @@
         "off": {
           "alt": "Egress traffic allowed"
         }
+      },
+      "when": {
+        "matchExpressions": [
+          {
+            "key": "platform.example.com/env",
+            "operator": "NotIn",
+            "values": [
+              "prod"
+            ]
+          }
+        ]
       }
     },
     {

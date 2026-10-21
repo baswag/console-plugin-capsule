@@ -80,6 +80,7 @@ These fields are common to all widgets:
 | `title` | Optional display name. |
 | `icon` | `pf:<name>` for a built-in PatternFly icon (see [icons](#icons)), or a relative path to an image in the addon directory, such as `icons/backup.svg`. |
 | `iconMode` | How image-file icons are drawn, see [icons](#icons). `"image"` (default) or `"mask"`. |
+| `when` | Optional [label selector](#conditional-widgets-when). The widget is only shown when the object's labels match it. |
 
 A **text** field can be a string, or a map from language to string. The plugin picks the
 console's language, then the base language, then `en`:
@@ -97,10 +98,12 @@ An icon that shows whether a label is set. A click switches the label after a co
 | `onValue` | `"true"`, or `""` with `match: "exists"` | The value written when switched on. With `match: "value"`, it is also the value that counts as on. |
 | `offValue` | – | The value to write when switched off. If you omit it, the plugin removes the label. You can't combine it with `match: "exists"`, because the label would still exist. |
 | `icon` | – | One icon for both states, or `{ "on": …, "off": … }` for a different icon per state. If one state is missing, that state uses the other state's icon. |
+| `whenNotMatched` | `"hide"` | What happens when `when` doesn't match: `"hide"`, or `"disable"` to keep showing the toggle, not clickable, with `text.notMatched` as the reason. |
 | `readOnly` | `false` | Display only: the icon is never clickable. Use this for labels that automation or another team manages. |
 | `text.on` / `text.off` | – | `{ "alt": …, "tooltip": … }` for each state. `alt` is the accessible name (screen readers, image `alt`). `tooltip` is shown on hover and keyboard focus. |
 | `text.readOnly` | – | Added to the tooltip of read-only toggles, for example the reason or who to contact. |
 | `text.noPermission` | generic message | Added to the tooltip when the user may not change the object. |
+| `text.notMatched` | generic message | Added to the tooltip when the toggle is disabled by `when` (with `whenNotMatched: "disable"`). |
 | `confirm` | generic prompt | `{ "enable": …, "disable": … }` confirmation texts, or `false` to switch without asking. |
 
 **Who can switch a toggle:** the user needs `patch` permission on the object. For a namespace,
@@ -115,6 +118,46 @@ The on and off states differ in more than colour. The namespace page shows *On*/
 and the button sets `aria-pressed`. With a single icon, the off icon is also dimmed and struck
 through. With a dedicated `off` icon, the icon itself shows the state, so the plugin doesn't
 add that decoration.
+
+### Conditional widgets (`when`)
+
+Any widget can depend on the object's other labels with a standard Kubernetes label
+selector:
+
+```json
+{
+  "type": "labelToggle",
+  "id": "gpu",
+  "slot": "namespace.detail",
+  "key": "platform.example.com/gpu",
+  "when": {
+    "matchLabels": { "platform.example.com/tier": "premium" },
+    "matchExpressions": [
+      { "key": "platform.example.com/env", "operator": "In", "values": ["dev", "test"] },
+      { "key": "platform.example.com/legacy", "operator": "DoesNotExist" }
+    ]
+  },
+  "whenNotMatched": "disable",
+  "text": { "notMatched": "Only available for premium-tier dev and test namespaces" }
+}
+```
+
+- The rules are the same as for any Kubernetes selector. Every `matchLabels` entry and every
+  expression must hold. The operators are `In`, `NotIn`, `Exists` and `DoesNotExist`.
+  `NotIn` also matches when the label is missing. `In` and `NotIn` need at least one value,
+  and `Exists` and `DoesNotExist` take none. The plugin rejects an invalid selector when it
+  loads the manifest.
+- The plugin evaluates the selector against the same object the widget shows: the namespace,
+  or the tenant in that table row. It re-evaluates on every change, so if one toggle sets
+  `tier=premium`, a toggle that depends on it appears right away.
+- By default a non-matching widget is hidden. On the namespace page, the *Extensions* section
+  disappears when every widget is hidden. For toggles, `"whenNotMatched": "disable"` keeps
+  showing them disabled, with `text.notMatched` in the tooltip.
+- Only labels are checked, not annotations.
+- **The condition only controls the UI.** Users who can patch the object can still set the
+  label in other ways, such as `oc label`. If a label must only be set under certain
+  conditions, enforce that on the cluster, for example with Capsule's forbidden-label
+  settings or an admission policy.
 
 ### `labelValue`
 

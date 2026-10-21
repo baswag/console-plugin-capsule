@@ -13,7 +13,6 @@
 .console-plugin-capsule__addon-toggle {
   display: inline-flex;
   align-items: center;
-  gap: var(--pf-t--global--spacer--sm);
   border: var(--pf-t--global--border--width--regular) solid
     var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--small);
@@ -25,8 +24,22 @@
   padding: var(--pf-t--global--spacer--xs);
 }
 
+.console-plugin-capsule__addon-toggle-content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  line-height: var(--pf-t--global--font--line-height--body);
+}
+
+/* Fixed square box so built-in and image icons of any aspect ratio line up and centre. */
 .console-plugin-capsule__addon-toggle-icon {
   display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.125em;
+  height: 1.125em;
+  line-height: 0;
 }
 
 .console-plugin-capsule__addon-toggle--on {
@@ -51,7 +64,11 @@
   transform: rotate(-45deg);
 }
 
+/* Separated from the title so "Operator Off" doesn't read as one word. */
 .console-plugin-capsule__addon-toggle-state {
+  padding-inline-start: var(--pf-t--global--spacer--sm);
+  border-inline-start: var(--pf-t--global--border--width--regular) solid
+    var(--pf-t--global--border--color--default);
   font-size: var(--pf-t--global--font--size--body--sm);
   color: var(--pf-t--global--text--color--subtle);
 }
@@ -60,6 +77,11 @@
   width: 1em;
   height: 1em;
   vertical-align: -0.125em;
+  object-fit: contain;
+}
+
+.console-plugin-capsule__addon-toggle-icon .console-plugin-capsule__addon-img {
+  display: block;
 }
 
 .console-plugin-capsule__addon-img--mask {

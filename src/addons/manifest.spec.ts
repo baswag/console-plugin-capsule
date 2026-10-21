@@ -114,6 +114,35 @@ describe('parseManifest', () => {
     ]);
   });
 
+  it('validates when and whenNotMatched', () => {
+    const toggle = { type: 'labelToggle', slot: 'namespace.detail', key: 'a' };
+    const when = { matchLabels: { tier: 'premium' } };
+    const { widgets, errors } = parseManifest(
+      'platform',
+      base,
+      manifest([
+        { ...toggle, id: 'ok', when, whenNotMatched: 'disable' },
+        { type: 'labelValue', id: 'value', slot: 'tenant.row', key: 'a', when },
+        { ...toggle, id: 'badwhen', when: { matchExpressions: [{ key: 'a', operator: 'In' }] } },
+        { ...toggle, id: 'badmode', when, whenNotMatched: 'grey' },
+        {
+          type: 'labelValue',
+          id: 'valuedisable',
+          slot: 'tenant.row',
+          key: 'a',
+          when,
+          whenNotMatched: 'disable',
+        },
+      ]),
+    );
+    expect(widgets.map((w) => w.id)).toEqual(['ok', 'value']);
+    expect(errors).toEqual([
+      'widget badwhen: "when" "matchExpressions[0]": "In" needs at least one value',
+      'widget badmode: "whenNotMatched" must be "hide" or "disable"',
+      'widget valuedisable: "whenNotMatched" is only supported for labelToggle',
+    ]);
+  });
+
   it('rejects unknown apiVersions', () => {
     const { widgets, errors } = parseManifest('platform', base, { apiVersion: 'v0', widgets: [] });
     expect(widgets).toEqual([]);

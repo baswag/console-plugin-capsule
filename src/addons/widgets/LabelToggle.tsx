@@ -4,6 +4,7 @@ import { Button, Tooltip } from '@patternfly/react-core';
 import { isToggleOn, labelTogglePatch } from '../bindings';
 import { ConfirmModal } from '../ConfirmModal';
 import { AddonIcon } from '../icons';
+import { matchesSelector } from '../selector';
 import { renderText } from '../text';
 import type { LabelToggleWidget, LoadedWidget } from '../types';
 import type { WidgetContext } from './context';
@@ -31,7 +32,11 @@ export function LabelToggle({ widget, ctx }: LabelToggleProps) {
   const tooltip = renderText(stateText?.tooltip, lang, vars) ?? alt;
 
   let blockedReason: string | undefined;
-  if (widget.readOnly) {
+  if (!matchesSelector(widget.when, ctx.resource.metadata.labels)) {
+    // Only reached with whenNotMatched: "disable"; otherwise AddonSlot hides the widget.
+    blockedReason =
+      renderText(widget.text?.notMatched, lang, vars) ?? t('Not available for {{name}}.', vars);
+  } else if (widget.readOnly) {
     blockedReason = renderText(widget.text?.readOnly, lang, vars);
   } else if (ctx.canPatch === undefined) {
     blockedReason = t('Checking permissions…');
@@ -81,8 +86,10 @@ export function LabelToggle({ widget, ctx }: LabelToggleProps) {
     .filter(Boolean)
     .join(' ');
 
+  // Laid out by our own flex container: PatternFly's Button wraps its children in a text span,
+  // so flex/gap on the button itself would only see that one span.
   const content = (
-    <>
+    <span className="console-plugin-capsule__addon-toggle-content">
       <span className="console-plugin-capsule__addon-toggle-icon">
         <AddonIcon icon={icon} baseUrl={widget.baseUrl} mode={widget.iconMode} />
       </span>
@@ -94,7 +101,7 @@ export function LabelToggle({ widget, ctx }: LabelToggleProps) {
           </span>
         </>
       )}
-    </>
+    </span>
   );
 
   const tooltipContent = (
