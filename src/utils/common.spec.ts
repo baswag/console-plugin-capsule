@@ -38,6 +38,9 @@ describe('readyConditionStatus', () => {
 describe('parseResourceValue', () => {
   it('parses plain numbers', () => {
     expect(parseResourceValue('4')).toBe(4);
+    // Unquoted quantities in a CRD come back from the API as JSON numbers.
+    expect(parseResourceValue(10)).toBe(10);
+    expect(parseResourceValue(0.5)).toBe(0.5);
   });
 
   it('parses milli values', () => {

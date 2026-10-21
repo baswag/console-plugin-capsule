@@ -182,7 +182,10 @@ export interface Tenant {
   };
 }
 
-export type ResourceQuantity = Record<string, string>;
+// Quantities in a CRD are `x-kubernetes-int-or-string`: the API server returns them exactly as
+// written, so `pods: 10` in the YAML comes back as the number 10, not "10".
+export type Quantity = string | number;
+export type ResourceQuantity = Record<string, Quantity>;
 
 export interface GlobalResourceQuotaCondition {
   type: string;

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { GlobalResourceQuotaCondition, ResourceQuantity, Tenant } from './capsule';
+import type { GlobalResourceQuotaCondition, Quantity, ResourceQuantity, Tenant } from './capsule';
 
 export function tenantNamespaceCount(status: Tenant['status']): number {
   return status?.size ?? status?.namespaces?.length ?? 0;
@@ -14,7 +14,7 @@ export function grqNamespaceCount(
 export function formatQuantity(q: ResourceQuantity | undefined): string {
   if (!q) return '—';
   return Object.entries(q)
-    .map(([k, v]) => `${k}: ${v}`)
+    .map(([k, v]) => `${k}: ${String(v)}`)
     .join(', ');
 }
 
@@ -26,11 +26,12 @@ export function readyConditionStatus(
 
 export interface UsageGaugeProps {
   resource: string;
-  used: string | undefined;
-  hard: string | undefined;
+  used: Quantity | undefined;
+  hard: Quantity | undefined;
 }
 
-export function parseResourceValue(val: string): number {
+export function parseResourceValue(val: Quantity): number {
+  if (typeof val === 'number') return val;
   if (!val) return 0;
   const s = val.trim();
   if (s.endsWith('m')) return parseFloat(s) / 1000;
@@ -79,7 +80,10 @@ export function UsageGauge({ resource, used, hard }: UsageGaugeProps) {
         : 'var(--pf-t--global--color--status--info--default)';
 
   const count = isCountResource(resource);
-  const usedOfHard = t('{{used}} of {{hard}}', { used: used ?? '0', hard: hard ?? '0' });
+  const usedOfHard = t('{{used}} of {{hard}}', {
+    used: String(used ?? '0'),
+    hard: String(hard ?? '0'),
+  });
   const centerLabel = count ? usedOfHard : t('{{pct}} %', { pct });
 
   return (
