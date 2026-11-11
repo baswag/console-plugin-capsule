@@ -182,10 +182,7 @@ export interface CreateNamespaceWidget extends WidgetBase {
 }
 
 export type AddonWidget =
-  | LabelToggleWidget
-  | LabelValueWidget
-  | ModuleWidget
-  | CreateNamespaceWidget;
+  LabelToggleWidget | LabelValueWidget | ModuleWidget | CreateNamespaceWidget;
 
 /** A validated widget together with the addon it came from. */
 export type LoadedWidget = AddonWidget & {
