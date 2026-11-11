@@ -1,5 +1,6 @@
+import { isLabelValue, isQualifiedName } from '../utils/k8sValidation';
 import { selectorError } from './selector';
-import { ADDON_API_VERSION, ADDON_SLOTS } from './types';
+import { ACTION_SLOTS, ADDON_API_VERSION, ADDON_SLOTS } from './types';
 import type { AddonWidget, AddonSlotName, LoadedWidget } from './types';
 
 /** Addon directory names, as used for the volume mount and in `addons/index.json`. */
@@ -37,11 +38,71 @@ function iconError(icon: unknown): string | null {
   return null;
 }
 
+/** Set on every namespace by the create dialog; addons can't override it. */
+export const TENANT_LABEL = 'capsule.clastix.io/tenant';
+
+/** Sample substitution so values with `{{tenant}}` can be checked before a tenant is known. */
+const withSampleTenant = (v: string) => v.replace(/\{\{\s*tenant\s*\}\}/g, 'tenant');
+
+function metadataEntriesError(field: 'labels' | 'annotations', entries: unknown): string | null {
+  if (!Array.isArray(entries)) return `"${field}" must be an array`;
+  const seen = new Set<string>();
+  for (let i = 0; i < entries.length; i++) {
+    const e: unknown = entries[i];
+    const at = `"${field}[${String(i)}]"`;
+    if (!isRecord(e)) return `${at} must be an object`;
+    if (typeof e.key !== 'string' || !isQualifiedName(e.key)) {
+      return `${at}: "key" must be a valid ${field === 'labels' ? 'label' : 'annotation'} key`;
+    }
+    if (field === 'labels' && e.key === TENANT_LABEL) {
+      return `${at}: "${TENANT_LABEL}" is set by the plugin`;
+    }
+    if (seen.has(e.key)) return `${at}: duplicate key "${e.key}"`;
+    seen.add(e.key);
+
+    const isPreset = e.value !== undefined;
+    if (isPreset === (e.title !== undefined)) {
+      return `${at} needs either "value" (preset, hidden) or "title" (shown to the user)`;
+    }
+    if (isPreset) {
+      if (typeof e.value !== 'string') return `${at}: "value" must be a string`;
+      for (const f of ['example', 'help', 'default', 'required']) {
+        if (e[f] !== undefined) return `${at}: "${f}" only applies to fields with a "title"`;
+      }
+      if (field === 'labels' && !isLabelValue(withSampleTenant(e.value))) {
+        return `${at}: "value" is not a valid label value`;
+      }
+      continue;
+    }
+    if (!isLocalizedText(e.title)) return `${at}: "title" must be text`;
+    for (const f of ['example', 'help'] as const) {
+      if (e[f] !== undefined && !isLocalizedText(e[f])) return `${at}: "${f}" must be text`;
+    }
+    if (e.required !== undefined && typeof e.required !== 'boolean') {
+      return `${at}: "required" must be a boolean`;
+    }
+    if (e.default !== undefined) {
+      if (typeof e.default !== 'string') return `${at}: "default" must be a string`;
+      if (field === 'labels' && !isLabelValue(withSampleTenant(e.default))) {
+        return `${at}: "default" is not a valid label value`;
+      }
+    }
+  }
+  return null;
+}
+
 function validateWidget(w: unknown): string | null {
   if (!isRecord(w)) return 'widget is not an object';
   if (typeof w.id !== 'string' || !w.id) return 'missing "id"';
   if (typeof w.slot !== 'string' || !(ADDON_SLOTS as readonly string[]).includes(w.slot)) {
     return `unknown slot "${String(w.slot)}"`;
+  }
+  const isActionSlot = (ACTION_SLOTS as readonly string[]).includes(w.slot);
+  if (w.type === 'createNamespace' && !isActionSlot) {
+    return '"createNamespace" needs slot "namespaces.toolbar"';
+  }
+  if (w.type !== 'createNamespace' && isActionSlot) {
+    return `slot "${w.slot}" only supports "createNamespace" widgets`;
   }
   if (w.title !== undefined && !isLocalizedText(w.title)) return '"title" must be text';
   if (w.when !== undefined) {
@@ -133,6 +194,26 @@ function validateWidget(w: unknown): string | null {
       }
       if (w.export !== undefined && typeof w.export !== 'string')
         return '"export" must be a string';
+      return null;
+    case 'createNamespace':
+      if (!isLocalizedText(w.text) || !w.text) return 'missing "text"';
+      if (w.description !== undefined && !isLocalizedText(w.description)) {
+        return '"description" must be text';
+      }
+      if (w.variant !== undefined && w.variant !== 'primary' && w.variant !== 'secondary') {
+        return '"variant" must be "primary" or "secondary"';
+      }
+      if (
+        w.honorGlobalForceTenantPrefix !== undefined &&
+        typeof w.honorGlobalForceTenantPrefix !== 'boolean'
+      ) {
+        return '"honorGlobalForceTenantPrefix" must be a boolean';
+      }
+      for (const f of ['labels', 'annotations'] as const) {
+        if (w[f] === undefined) continue;
+        const error = metadataEntriesError(f, w[f]);
+        if (error) return error;
+      }
       return null;
     default:
       return `unknown type "${String(w.type)}"`;

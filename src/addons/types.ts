@@ -5,8 +5,16 @@ import type { V1ObjectMetaString } from '../utils/k8s-types';
 
 export const ADDON_API_VERSION = 'console-plugin-capsule/addons/v1';
 
+/** Slots bound to one object (a namespace, a tenant row), for display and label widgets. */
+export const RESOURCE_SLOTS = ['namespace.detail', 'tenant.row'] as const;
+export type ResourceSlotName = (typeof RESOURCE_SLOTS)[number];
+
+/** Slots for action widgets (e.g. extra create buttons) in page toolbars. */
+export const ACTION_SLOTS = ['namespaces.toolbar'] as const;
+export type ActionSlotName = (typeof ACTION_SLOTS)[number];
+
 /** Places in the plugin's pages where addon widgets can be rendered. */
-export const ADDON_SLOTS = ['namespace.detail', 'tenant.row'] as const;
+export const ADDON_SLOTS = [...RESOURCE_SLOTS, ...ACTION_SLOTS] as const;
 export type AddonSlotName = (typeof ADDON_SLOTS)[number];
 
 /** Any Kubernetes object an addon slot can be bound to (Namespace, Tenant, ...). */
@@ -130,7 +138,54 @@ export interface ModuleWidget extends WidgetBase {
   config?: unknown;
 }
 
-export type AddonWidget = LabelToggleWidget | LabelValueWidget | ModuleWidget;
+/** A label or annotation set to a fixed value, not shown to the user. */
+export interface PresetMetadataEntry {
+  key: string;
+  /** May contain `{{tenant}}`. */
+  value: string;
+}
+
+/** A label or annotation the user fills in. */
+export interface InputMetadataEntry {
+  key: string;
+  /** Field label shown to the user (the friendly name). */
+  title: LocalizedText;
+  /** Shown as placeholder: `e.g. <example>`. */
+  example?: LocalizedText;
+  /** Helper text below the field. */
+  help?: LocalizedText;
+  /** Pre-filled value; may contain `{{tenant}}`. */
+  default?: string;
+  /** Empty optional fields are left out of the namespace. */
+  required?: boolean;
+}
+
+export type MetadataEntry = PresetMetadataEntry | InputMetadataEntry;
+
+export interface CreateNamespaceWidget extends WidgetBase {
+  type: 'createNamespace';
+  slot: 'namespaces.toolbar';
+  /** Button text; `{{tenant}}` is replaced. */
+  text: LocalizedText;
+  icon?: string;
+  /** Button style; defaults to `"secondary"`. */
+  variant?: 'primary' | 'secondary';
+  /** Dialog description; `{{tenant}}` is replaced. */
+  description?: LocalizedText;
+  /**
+   * Whether the deployment-wide `forceTenantPrefix` setting applies (default `true`). The
+   * tenant's own `spec.forceTenantPrefix` always applies, because Capsule enforces it.
+   */
+  honorGlobalForceTenantPrefix?: boolean;
+  labels?: MetadataEntry[];
+  annotations?: MetadataEntry[];
+}
+
+export type AddonWidget =
+  | LabelToggleWidget
+  | LabelValueWidget
+  | ModuleWidget
+  | CreateNamespaceWidget;
 
 /** A validated widget together with the addon it came from. */
 export type LoadedWidget = AddonWidget & {
@@ -177,7 +232,7 @@ export interface AddonHost {
 /** Props of the component a module addon returns. */
 export interface AddonComponentProps<R extends AddonResource = AddonResource> {
   resource: R;
-  slot: AddonSlotName;
+  slot: ResourceSlotName;
   /** Rendered in a table cell rather than a page section. */
   compact: boolean;
   /** Whether the user may patch `resource`; `undefined` while the check is pending. */

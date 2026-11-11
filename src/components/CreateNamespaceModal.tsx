@@ -19,6 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
+import { isLabelValue } from '../utils/k8sValidation';
 import './Gauges.css';
 
 // Kubernetes namespace name validation: lowercase alphanumeric and hyphens, max 63 chars
@@ -31,33 +32,93 @@ const namespacesApi = new CapsuleClient<V1NamespaceString>({
   apiKindSingle: 'Namespace',
 });
 
+const TENANT_LABEL = 'capsule.clastix.io/tenant';
+
+/** A label or annotation the user fills in when creating the namespace. */
+export interface NamespaceMetadataField {
+  kind: 'label' | 'annotation';
+  key: string;
+  /** Field label (friendly name). */
+  title: string;
+  /** Shown as `e.g. <example>` placeholder. */
+  example?: string;
+  help?: string;
+  default?: string;
+  /** Empty optional fields are left out of the namespace. */
+  required?: boolean;
+}
+
 interface CreateNamespaceModalProps {
   tenant: string;
   /** When set, the namespace name is forced to `<tenant>-<suffix>` and only the suffix is editable. */
   forceTenantPrefix: boolean;
+  /** Dialog title; defaults to "Create Namespace". */
+  title?: string;
+  description?: string;
+  /** Labels set on the namespace without being shown. The tenant label always wins. */
+  presetLabels?: Record<string, string>;
+  /** Annotations set on the namespace without being shown. */
+  presetAnnotations?: Record<string, string>;
+  fields?: NamespaceMetadataField[];
   onClose: () => void;
 
   onCreated: (name: string) => void;
 }
 
+const fieldId = (f: NamespaceMetadataField) => `ns-${f.kind}-${f.key}`;
+
+function fieldError(
+  field: NamespaceMetadataField,
+  value: string,
+  t: (key: string) => string,
+): string | null {
+  if (value === '') return field.required ? t('This field is required.') : null;
+  if (field.kind === 'label' && !isLabelValue(value)) {
+    return t(
+      'Must be at most 63 characters: letters, digits, "-", "_" or ".", starting and ending with a letter or digit.',
+    );
+  }
+  return null;
+}
+
 export default function CreateNamespaceModal({
   tenant,
   forceTenantPrefix,
+  title,
+  description,
+  presetLabels = {},
+  presetAnnotations = {},
+  fields = [],
   onClose,
   onCreated,
 }: CreateNamespaceModalProps) {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const [input, setInput] = useState('');
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(fields.map((f) => [fieldId(f), f.default ?? ''])),
+  );
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const prefix = forceTenantPrefix ? `${tenant}-` : '';
   const name = `${prefix}${input}`;
-  const isValid = input.length > 0 && NS_PATTERN.test(name);
-  const showValidation = input.length > 0 && !isValid;
+  const nameValid = input.length > 0 && NS_PATTERN.test(name);
+  const showValidation = input.length > 0 && !nameValid;
+  const fieldErrors = Object.fromEntries(
+    fields.map((f) => [fieldId(f), fieldError(f, values[fieldId(f)] ?? '', t)]),
+  );
+  const isValid = nameValid && Object.values(fieldErrors).every((e) => e === null);
 
   const handleSubmit = () => {
     if (!isValid) return;
+    const filled = (kind: NamespaceMetadataField['kind']) =>
+      Object.fromEntries(
+        fields
+          .filter((f) => f.kind === kind && values[fieldId(f)] !== '')
+          .map((f) => [f.key, values[fieldId(f)]]),
+      );
+    const annotations = { ...presetAnnotations, ...filled('annotation') };
     setSubmitting(true);
     setError(null);
 
@@ -69,9 +130,8 @@ export default function CreateNamespaceModal({
           kind: 'Namespace',
           metadata: {
             name,
-            labels: {
-              'capsule.clastix.io/tenant': tenant,
-            },
+            labels: { ...presetLabels, ...filled('label'), [TENANT_LABEL]: tenant },
+            ...(Object.keys(annotations).length > 0 && { annotations }),
           },
         },
       )
@@ -86,8 +146,9 @@ export default function CreateNamespaceModal({
 
   return (
     <Modal isOpen onClose={onClose} variant="small">
-      <ModalHeader title={t('Create Namespace')} />
+      <ModalHeader title={title ?? t('Create Namespace')} />
       <ModalBody>
+        {description && <p>{description}</p>}
         <p>{t('Namespace will be assigned to tenant: {{tenant}}', { tenant })}</p>
         {error && (
           <Alert
@@ -155,6 +216,42 @@ export default function CreateNamespaceModal({
               </FormHelperText>
             )}
           </FormGroup>
+          {fields.map((field) => {
+            const id = fieldId(field);
+            const fieldErr = touched[id] ? fieldErrors[id] : null;
+            const keyHint =
+              field.kind === 'label'
+                ? t('Label {{labelKey}}', { labelKey: field.key })
+                : t('Annotation {{annotationKey}}', { annotationKey: field.key });
+            return (
+              <FormGroup key={id} label={field.title} isRequired={field.required} fieldId={id}>
+                <TextInput
+                  id={id}
+                  value={values[id] ?? ''}
+                  placeholder={
+                    field.example ? t('e.g. {{example}}', { example: field.example }) : undefined
+                  }
+                  onChange={(_e, val) => {
+                    setValues((v) => ({ ...v, [id]: val }));
+                  }}
+                  onBlur={() => {
+                    setTouched((tc) => ({ ...tc, [id]: true }));
+                  }}
+                  validated={fieldErr ? 'error' : 'default'}
+                  data-test={`ns-field-${field.kind}-${field.key}`}
+                />
+                <FormHelperText>
+                  <HelperText>
+                    {fieldErr ? (
+                      <HelperTextItem variant="error">{fieldErr}</HelperTextItem>
+                    ) : (
+                      <HelperTextItem>{field.help ?? keyHint}</HelperTextItem>
+                    )}
+                  </HelperText>
+                </FormHelperText>
+              </FormGroup>
+            );
+          })}
         </Form>
       </ModalBody>
       <ModalFooter>

@@ -7,6 +7,8 @@ plugin. Typical uses:
   and a click sets or removes the label after a confirmation.
 - An expiry date on each tenant, read from a label, that turns orange shortly before the date
   and red after it.
+- Extra "create namespace" buttons, for example "Create sandbox", that set preset labels and
+  annotations and ask the user for others, such as a cost center.
 - Custom JavaScript that renders anything else, with access to the page's object and to the
   Kubernetes API through `capsule-proxy`.
 
@@ -74,9 +76,9 @@ These fields are common to all widgets:
 
 | Field | Description |
 | --- | --- |
-| `type` | `labelToggle`, `labelValue` or `module`. |
+| `type` | `labelToggle`, `labelValue`, `module` or `createNamespace`. |
 | `id` | Unique within the addon. |
-| `slot` | Where the widget is shown: `namespace.detail` (the *Extensions* section of the tenant namespace page) or `tenant.row` (the *Extensions* column of the Tenants table, icons only). |
+| `slot` | Where the widget is shown: `namespace.detail` (the *Extensions* section of the tenant namespace page), `tenant.row` (the *Extensions* column of the Tenants table, icons only), or `namespaces.toolbar` (the toolbar of the Tenant Namespaces page, next to *Create Namespace*; only for `createNamespace`, which can't go anywhere else). |
 | `title` | Optional display name. |
 | `icon` | `pf:<name>` for a built-in PatternFly icon (see [icons](#icons)), or a relative path to an image in the addon directory, such as `icons/backup.svg`. |
 | `iconMode` | How image-file icons are drawn, see [icons](#icons). `"image"` (default) or `"mask"`. |
@@ -245,6 +247,63 @@ Rules for modules:
 - Modules come from the plugin's own origin, so the console's Content Security Policy allows
   them. Modules can't load scripts from other origins.
 
+### `createNamespace`
+
+An extra button in the toolbar of the *Tenant Namespaces* page. It opens the usual
+create-namespace dialog (name field, tenant label), with a custom title and description,
+preset labels and annotations, and extra fields for the user to fill in. The slot must be
+`namespaces.toolbar`.
+
+```json
+{
+  "type": "createNamespace",
+  "id": "sandbox",
+  "slot": "namespaces.toolbar",
+  "text": { "en": "Create sandbox", "de": "Sandbox anlegen" },
+  "description": "Sandboxes of {{tenant}} are deleted after 30 days.",
+  "icon": "pf:cube",
+  "labels": [
+    { "key": "platform.example.com/sandbox", "value": "true" },
+    { "key": "platform.example.com/cost-center", "title": "Cost center", "example": "CC-1234", "required": true }
+  ],
+  "annotations": [
+    { "key": "platform.example.com/purpose", "title": "Purpose", "help": "Shown to the platform team." }
+  ]
+}
+```
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `text` | – | Button text. |
+| `title` | `text` | Dialog title. |
+| `description` | – | Text shown at the top of the dialog. |
+| `icon` | – | Button icon. |
+| `variant` | `"secondary"` | `"primary"` or `"secondary"` button style. |
+| `honorGlobalForceTenantPrefix` | `true` | Whether the chart's `plugin.config.forceTenantPrefix` applies to this dialog. With `false`, the user can pick any name, unless the tenant's own `spec.forceTenantPrefix` is set: that one always applies, because Capsule rejects unprefixed names for such tenants anyway. |
+| `labels`, `annotations` | `[]` | Entries to set on the new namespace, see below. |
+| `when` | – | [Label selector](#conditional-widgets-when) on the selected **tenant's** labels. The button is hidden when it doesn't match. |
+
+Each entry in `labels` and `annotations` is one of two kinds:
+
+- **Preset (hidden):** `{ "key": …, "value": … }`. Always set, never shown to the user.
+- **Field (shown):** `{ "key": …, "title": …, "example"?, "help"?, "default"?, "required"? }`.
+  `title` is the field's label (the friendly name). `example` is shown as the placeholder
+  (*e.g. CC-1234*). `help` is shown below the field; without it, the field shows the key.
+  `default` pre-fills the field. Empty optional fields aren't set on the namespace. For
+  labels, the dialog checks the value against the Kubernetes label value rules.
+
+`text`, `title`, `description`, and the field `title`, `example` and `help` are text fields.
+In all of them, and in preset `value`s and `default`s, `{{tenant}}` is replaced by the tenant
+name. Keys must be valid Kubernetes label/annotation keys, can't repeat within `labels` or
+within `annotations`, and `capsule.clastix.io/tenant` can't be set, because the plugin sets
+it.
+
+The button creates the namespace with the user's own permissions, like the default *Create
+Namespace* button. Labels and annotations go through Capsule's webhooks as usual, so a
+tenant's forbidden or required labels and annotations still apply. **Hidden presets are not
+a security boundary:** users who may create namespaces can set any other allowed labels with
+`oc` as well. Enforce required labels on the cluster, for example with an admission policy.
+
 ### Icons
 
 These names work as `pf:<name>`: `archive`, `bell`, `bolt`, `bug`, `calendar-alt`, `camera`,
@@ -270,8 +329,9 @@ keep icon files next to `manifest.json`.
 
 ## Security
 
-- Declarative widgets (`labelToggle`, `labelValue`) contain no code. They can only read the
-  page's object and patch one label on it, with the user's own permissions.
+- Declarative widgets (`labelToggle`, `labelValue`, `createNamespace`) contain no code. They
+  can only read the page's object and patch one label on it, or create a namespace in the
+  selected tenant, with the user's own permissions.
 - Module addons run inside the console with the logged-in user's token, like any console
   plugin. Treat whoever can write the addon's volume source (the ConfigMap, the PVC, or the
   image) as able to act as any console user. Keep addon sources in the plugin's namespace,

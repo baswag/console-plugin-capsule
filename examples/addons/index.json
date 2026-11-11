@@ -1,1 +1,1 @@
-{ "addons": ["platform-features", "pod-count"] }
+{ "addons": ["platform-features", "pod-count", "namespace-templates"] }

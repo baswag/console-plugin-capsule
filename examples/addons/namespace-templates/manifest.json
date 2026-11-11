@@ -1,0 +1,45 @@
+{
+  "apiVersion": "console-plugin-capsule/addons/v1",
+  "widgets": [
+    {
+      "type": "createNamespace",
+      "id": "sandbox",
+      "slot": "namespaces.toolbar",
+      "text": { "en": "Create sandbox", "de": "Sandbox anlegen" },
+      "title": { "en": "Create sandbox namespace", "de": "Sandbox-Namespace anlegen" },
+      "description": {
+        "en": "Sandboxes of {{tenant}} get reduced quotas and are deleted after 30 days.",
+        "de": "Sandboxes von {{tenant}} haben reduzierte Quotas und werden nach 30 Tagen gelöscht."
+      },
+      "icon": "pf:cube",
+      "honorGlobalForceTenantPrefix": true,
+      "labels": [
+        { "key": "platform.example.com/sandbox", "value": "true" },
+        {
+          "key": "platform.example.com/cost-center",
+          "title": { "en": "Cost center", "de": "Kostenstelle" },
+          "example": "CC-1234",
+          "required": true
+        }
+      ],
+      "annotations": [
+        { "key": "platform.example.com/created-via", "value": "console sandbox button" },
+        {
+          "key": "platform.example.com/purpose",
+          "title": { "en": "Purpose", "de": "Zweck" },
+          "example": { "en": "Load test for the new API", "de": "Lasttest der neuen API" },
+          "help": { "en": "Shown to the platform team.", "de": "Für das Plattform-Team sichtbar." }
+        }
+      ]
+    },
+    {
+      "type": "createNamespace",
+      "id": "gpu",
+      "slot": "namespaces.toolbar",
+      "text": "Create GPU namespace",
+      "when": { "matchLabels": { "platform.example.com/tier": "premium" } },
+      "honorGlobalForceTenantPrefix": false,
+      "labels": [{ "key": "platform.example.com/gpu", "value": "enabled" }]
+    }
+  ]
+}

@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import { ListPageHeader, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import {
+  ActionList,
+  ActionListItem,
   Alert,
   AlertActionCloseButton,
   Button,
@@ -33,6 +35,7 @@ import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 import { usePluginConfig } from '../utils/pluginConfig';
+import { CreateNamespaceActions } from '../addons/CreateNamespaceActions';
 import { SyncAltIcon, TrashIcon } from '@patternfly/react-icons';
 import './Gauges.css';
 
@@ -240,6 +243,12 @@ export default function TenantNamespacesPage() {
       });
   }, [fetchKey, selectedTenant, t]);
 
+  const selectedTenantObj = tenants.find((tenant) => tenant.metadata.name === selectedTenant);
+  const onNamespaceCreated = (name: string) => {
+    setPendingNamespace(name);
+    setRefreshToken((n) => n + 1);
+  };
+
   const onTenantSelect = (_: MouseEvent | undefined, value: string | number | undefined) => {
     const name = String(value);
     setTenantSelectOpen(false);
@@ -368,15 +377,24 @@ export default function TenantNamespacesPage() {
             </>
           }
           actions={
-            <Button
-              variant="primary"
-              isDisabled={!selectedTenant}
-              onClick={() => {
-                setCreateModalOpen(true);
-              }}
-            >
-              {t('Create Namespace')}
-            </Button>
+            <ActionList>
+              <ActionListItem>
+                <Button
+                  variant="primary"
+                  isDisabled={!selectedTenant}
+                  onClick={() => {
+                    setCreateModalOpen(true);
+                  }}
+                >
+                  {t('Create Namespace')}
+                </Button>
+              </ActionListItem>
+              <CreateNamespaceActions
+                tenant={selectedTenantObj}
+                globalForceTenantPrefix={pluginConfig.forceTenantPrefix}
+                onCreated={onNamespaceCreated}
+              />
+            </ActionList>
           }
           pagination={
             <Pagination
@@ -403,18 +421,14 @@ export default function TenantNamespacesPage() {
         <CreateNamespaceModal
           tenant={selectedTenant}
           forceTenantPrefix={
-            pluginConfig.forceTenantPrefix ||
-            (tenants.find((tenant) => tenant.metadata.name === selectedTenant)?.spec
-              .forceTenantPrefix ??
-              false)
+            pluginConfig.forceTenantPrefix || (selectedTenantObj?.spec.forceTenantPrefix ?? false)
           }
           onClose={() => {
             setCreateModalOpen(false);
           }}
           onCreated={(name) => {
             setCreateModalOpen(false);
-            setPendingNamespace(name);
-            setRefreshToken((n) => n + 1);
+            onNamespaceCreated(name);
           }}
         />
       )}

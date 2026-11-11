@@ -1,5 +1,5 @@
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
-import type { AddonResource, AddonSlotName, LabelToggleWidget } from './types';
+import type { AddonResource, ResourceSlotName, LabelToggleWidget } from './types';
 
 const namespacesClient = new CapsuleClient<AddonResource>({
   apiGroup: '',
@@ -16,7 +16,7 @@ export interface SlotBinding {
   fetch: (resource: AddonResource) => Promise<AddonResource>;
 }
 
-export const SLOT_BINDINGS: Record<AddonSlotName, SlotBinding> = {
+export const SLOT_BINDINGS: Record<ResourceSlotName, SlotBinding> = {
   'namespace.detail': {
     // Namespace RBAC is evaluated with the namespace set to the namespace's own name, which is
     // what grants tenant members (and only them) access to their namespaces.

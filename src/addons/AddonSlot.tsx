@@ -7,7 +7,7 @@ import type { FallbackProps } from 'react-error-boundary';
 import { SLOT_BINDINGS } from './bindings';
 import { useAddonWidgets } from './registry';
 import { visibleWidgets } from './selector';
-import type { AddonResource, AddonSlotName, LoadedWidget } from './types';
+import type { AddonResource, LoadedWidget, ResourceSlotName } from './types';
 import { LabelToggle } from './widgets/LabelToggle';
 import { LabelValue } from './widgets/LabelValue';
 import { ModuleWidget } from './widgets/ModuleWidget';
@@ -47,11 +47,14 @@ function renderWidget(widget: LoadedWidget, ctx: WidgetContext) {
       return <LabelValue widget={widget} ctx={ctx} />;
     case 'module':
       return <ModuleWidget widget={widget} ctx={ctx} />;
+    default:
+      // Action widgets (createNamespace) are rejected for resource slots by the manifest parser.
+      return null;
   }
 }
 
 interface AddonSlotProps<R extends AddonResource> {
-  slot: AddonSlotName;
+  slot: ResourceSlotName;
   resource: R;
   /** Called with the updated object after a widget changed it. */
   onUpdated: (updated: R) => void;
