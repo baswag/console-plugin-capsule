@@ -8,6 +8,8 @@ metadata:
 data:
   # Read by the plugin at runtime to discover the addons mounted below addons/.
   addons-index.json: {{ include "openshift-console-plugin.addonsIndex" . | quote }}
+  # Read by the plugin at runtime for deployment-wide settings (plugin.config).
+  config.json: {{ dict "forceTenantPrefix" (.Values.plugin.config.forceTenantPrefix | default false) | toJson | quote }}
   custom.conf: |
     server {
       listen              {{ .Values.plugin.port }} ssl;
@@ -29,6 +31,10 @@ data:
 
       # Addons are mounted from volumes and can change without a new image, so browsers
       # must revalidate instead of caching them.
+      location = /config.json {
+        add_header Cache-Control "no-cache" always;
+      }
+
       location /addons/ {
         add_header Cache-Control "no-cache" always;
       }

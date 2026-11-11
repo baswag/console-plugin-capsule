@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 import { parseIndex, parseManifest, widgetsForSlot } from './manifest';
 import type { AddonSlotName, LoadedWidget } from './types';
-
-const FALLBACK_PUBLIC_PATH = '/api/plugins/console-plugin-capsule/';
+import { pluginBaseUrl } from '../utils/pluginConfig';
 
 /** URL of the `addons/` directory served next to the plugin's own assets. */
 export function addonsBaseUrl(): string {
-  const publicPath =
-    typeof __webpack_public_path__ === 'string' && __webpack_public_path__
-      ? __webpack_public_path__
-      : FALLBACK_PUBLIC_PATH;
-  return `${publicPath.endsWith('/') ? publicPath : `${publicPath}/`}addons/`;
+  return `${pluginBaseUrl()}addons/`;
 }
 
 async function fetchJSON(url: string): Promise<unknown> {

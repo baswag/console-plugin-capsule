@@ -37,6 +37,12 @@ plugin:
       cpu: 200m
       memory: 200Mi
   basePath: /
+  # Deployment-wide plugin settings, served to the browser as config.json.
+  config:
+    # Require new namespaces to be named "<tenant>-..." for every tenant, regardless of the
+    # tenant's spec.forceTenantPrefix. Set this when Capsule's global forceTenantPrefix
+    # option is enabled, so the create-namespace dialog matches what Capsule enforces.
+    forceTenantPrefix: false
   # Addons add cluster-specific widgets (label toggles, label/annotation badges, custom JS
   # modules) to the Capsule pages without rebuilding the plugin. Each entry is mounted
   # read-only at <nginx root>/addons/<name>/ and must contain a manifest.json; `volume` is any

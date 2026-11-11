@@ -147,6 +147,10 @@ helm upgrade -i console-plugin-capsule charts/openshift-console-plugin \
   --set plugin.image.version=0.0.6
 ```
 
+If Capsule's global `forceTenantPrefix` option is enabled, set
+`--set plugin.config.forceTenantPrefix=true` so the "Create namespace" dialog requires the
+`<tenant>-` prefix for every tenant, not only those with `spec.forceTenantPrefix: true`.
+
 To add addons, set `plugin.addons`. See [docs/addons.md](docs/addons.md) and
 [examples/k8s/values-addons.yaml](examples/k8s/values-addons.yaml).
 

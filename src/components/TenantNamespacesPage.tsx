@@ -32,6 +32,7 @@ import type { Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import type { V1NamespaceString } from '../utils/k8s-types';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
+import { usePluginConfig } from '../utils/pluginConfig';
 import { SyncAltIcon, TrashIcon } from '@patternfly/react-icons';
 import './Gauges.css';
 
@@ -169,6 +170,7 @@ export default function TenantNamespacesPage() {
     loadError: string | null;
   }>({ fetchedFor: '', namespaces: [], loadError: null });
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const pluginConfig = usePluginConfig();
   const [refreshToken, setRefreshToken] = useState(0);
   const [pendingNamespace, setPendingNamespace] = useState<string | null>(null);
   const [pendingNamespaceTimedOut, setPendingNamespaceTimedOut] = useState(false);
@@ -401,8 +403,10 @@ export default function TenantNamespacesPage() {
         <CreateNamespaceModal
           tenant={selectedTenant}
           forceTenantPrefix={
-            tenants.find((tenant) => tenant.metadata.name === selectedTenant)?.spec
-              .forceTenantPrefix ?? false
+            pluginConfig.forceTenantPrefix ||
+            (tenants.find((tenant) => tenant.metadata.name === selectedTenant)?.spec
+              .forceTenantPrefix ??
+              false)
           }
           onClose={() => {
             setCreateModalOpen(false);

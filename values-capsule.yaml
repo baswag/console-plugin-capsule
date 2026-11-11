@@ -1,4 +1,6 @@
 global:
+  openshift:
+    enabled: true
   jobs:
     kubectl:
       podSecurityContext:
