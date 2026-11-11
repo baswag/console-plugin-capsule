@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import { ListPageHeader, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import {
   ActionList,
+  ActionListGroup,
   ActionListItem,
   Alert,
   AlertActionCloseButton,
@@ -19,6 +20,8 @@ import {
   SelectList,
   SelectOption,
   Spinner,
+  Toolbar,
+  ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
 import CreateNamespaceModal from './CreateNamespaceModal';
@@ -28,7 +31,6 @@ import {
   DataViewState,
   DataViewTable,
   DataViewTextFilter,
-  DataViewToolbar,
 } from '@patternfly/react-data-view';
 import type { Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
@@ -341,31 +343,33 @@ export default function TenantNamespacesPage() {
         />
       )}
       <DataView activeState={activeState}>
-        <DataViewToolbar
-          filters={
-            <>
-              <ToolbarItem>
-                <Select
-                  isOpen={tenantSelectOpen}
-                  selected={selectedTenant}
-                  onSelect={onTenantSelect}
-                  onOpenChange={setTenantSelectOpen}
-                  toggle={tenantToggle}
-                  shouldFocusToggleOnSelect
-                >
-                  <SelectList>
-                    {tenants.map((tenant) => (
-                      <SelectOption
-                        key={tenant.metadata.name}
-                        value={tenant.metadata.name}
-                        isSelected={tenant.metadata.name === selectedTenant}
-                      >
-                        {tenant.metadata.name}
-                      </SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
-              </ToolbarItem>
+        {/* A plain Toolbar rather than DataViewToolbar: the latter wraps `actions` in a
+            ToolbarItem we can't align, and the create buttons belong on the right. */}
+        <Toolbar>
+          <ToolbarContent>
+            <ToolbarItem>
+              <Select
+                isOpen={tenantSelectOpen}
+                selected={selectedTenant}
+                onSelect={onTenantSelect}
+                onOpenChange={setTenantSelectOpen}
+                toggle={tenantToggle}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  {tenants.map((tenant) => (
+                    <SelectOption
+                      key={tenant.metadata.name}
+                      value={tenant.metadata.name}
+                      isSelected={tenant.metadata.name === selectedTenant}
+                    >
+                      {tenant.metadata.name}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
+            </ToolbarItem>
+            <ToolbarItem>
               <DataViewTextFilter
                 filterId="name"
                 title={t('Name')}
@@ -374,39 +378,45 @@ export default function TenantNamespacesPage() {
                   onSetFilters({ name: val });
                 }}
               />
-            </>
-          }
-          actions={
-            <ActionList>
-              <ActionListItem>
-                <Button
-                  variant="primary"
-                  isDisabled={!selectedTenant}
-                  onClick={() => {
-                    setCreateModalOpen(true);
-                  }}
-                >
-                  {t('Create Namespace')}
-                </Button>
-              </ActionListItem>
-              <CreateNamespaceActions
-                tenant={selectedTenantObj}
-                globalForceTenantPrefix={pluginConfig.forceTenantPrefix}
-                onCreated={onNamespaceCreated}
+            </ToolbarItem>
+            <ToolbarItem align={{ default: 'alignEnd' }}>
+              <ActionList>
+                <ActionListGroup>
+                  {/* Addon buttons first, so the built-in "Create Namespace" is right-most. */}
+                  <CreateNamespaceActions
+                    tenant={selectedTenantObj}
+                    globalForceTenantPrefix={pluginConfig.forceTenantPrefix}
+                    onCreated={onNamespaceCreated}
+                  />
+                  <ActionListItem>
+                    <Button
+                      variant="primary"
+                      isDisabled={!selectedTenant}
+                      onClick={() => {
+                        setCreateModalOpen(true);
+                      }}
+                    >
+                      {t('Create Namespace')}
+                    </Button>
+                  </ActionListItem>
+                </ActionListGroup>
+              </ActionList>
+            </ToolbarItem>
+            <ToolbarItem
+              variant="pagination"
+              className="console-plugin-capsule__toolbar-pagination"
+            >
+              <Pagination
+                itemCount={sorted.length}
+                page={page}
+                perPage={perPage}
+                onSetPage={onSetPage}
+                onPerPageSelect={onPerPageSelect}
+                isCompact
               />
-            </ActionList>
-          }
-          pagination={
-            <Pagination
-              itemCount={sorted.length}
-              page={page}
-              perPage={perPage}
-              onSetPage={onSetPage}
-              onPerPageSelect={onPerPageSelect}
-              isCompact
-            />
-          }
-        />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
         <DataViewTable
           columns={columns}
           rows={rows}

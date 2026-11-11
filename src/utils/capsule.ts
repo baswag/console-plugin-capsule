@@ -177,6 +177,9 @@ export interface Tenant {
   };
   status?: {
     namespaces?: string[];
+    // Owners as collected by the Capsule controller: spec.owners plus owners granted from
+    // other sources, so this can be non-empty even when spec.owners is empty.
+    owners?: TenantOwner[];
     size?: number;
     state?: string;
   };

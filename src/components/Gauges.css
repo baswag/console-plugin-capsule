@@ -114,3 +114,9 @@
 .console-plugin-capsule__input-group {
   margin-top: 0.5rem;
 }
+
+/* Pagination on its own row below the filters/actions, matching DataViewToolbar's layout. */
+.console-plugin-capsule__toolbar-pagination {
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
