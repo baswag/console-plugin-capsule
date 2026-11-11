@@ -95,6 +95,7 @@
     "description": "An OpenShift Console Plugin for Capsule",
     "exposedModules": {
       "TenantsPage": "./components/TenantsPage",
+      "TenantOverviewPage": "./components/TenantOverviewPage",
       "TenantNamespacesPage": "./components/TenantNamespacesPage",
       "GlobalResourceQuotasPage": "./components/GlobalResourceQuotasPage",
       "GlobalResourceQuotaDetailPage": "./components/GlobalResourceQuotaDetailPage",

@@ -1,164 +1,22 @@
 import type { MouseEvent, RefObject } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom-v5-compat';
-import { ListPageHeader, Timestamp, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
+import { ListPageHeader, DocumentTitle } from '@openshift-console/dynamic-plugin-sdk';
 import {
-  ActionList,
-  ActionListGroup,
-  ActionListItem,
-  Alert,
-  AlertActionCloseButton,
   Button,
   MenuToggle,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  Pagination,
   Select,
   SelectList,
   SelectOption,
-  Spinner,
-  Toolbar,
-  ToolbarContent,
   ToolbarItem,
 } from '@patternfly/react-core';
-import CreateNamespaceModal from './CreateNamespaceModal';
-import type { DataViewTr } from '@patternfly/react-data-view';
-import {
-  DataView,
-  DataViewState,
-  DataViewTable,
-  DataViewTextFilter,
-} from '@patternfly/react-data-view';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
-import type { V1NamespaceString } from '../utils/k8s-types';
-import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
-import { usePluginConfig } from '../utils/pluginConfig';
-import { CreateNamespaceActions } from '../addons/CreateNamespaceActions';
-import { SyncAltIcon, TrashIcon } from '@patternfly/react-icons';
-import './Gauges.css';
-
-const MAX_PENDING_NAMESPACE_ATTEMPTS = 15;
-
-const COLUMN_KEYS = ['name', 'status', 'created'] as const;
-type ColumnKey = (typeof COLUMN_KEYS)[number];
-
-const getSortValue = (ns: V1NamespaceString, key: ColumnKey): string => {
-  switch (key) {
-    case 'name':
-      return ns.metadata.name;
-    case 'status':
-      return ns.status?.phase ?? '';
-    case 'created':
-      return ns.metadata.creationTimestamp;
-  }
-};
-
-const namespacesApiClient = new CapsuleClient<V1NamespaceString>({
-  apiGroup: '',
-  apiVersion: 'v1',
-  apiKind: 'namespaces',
-  apiKindSingle: 'Namespace',
-});
+import { TenantNamespaceList } from './TenantNamespaceList';
 
 const tenantApiClient = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
-
-function NamespaceDeleteTr({ ns, onDeleted }: { ns: V1NamespaceString; onDeleted: () => void }) {
-  const { t } = useTranslation('plugin__console-plugin-capsule');
-  const [canDelete, setCanDelete] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    namespacesApiClient
-      .authCanI({ verb: 'delete', name: ns.metadata.name, namespace: ns.metadata.name })
-      .then(setCanDelete)
-      .catch(() => {
-        setCanDelete(false);
-      });
-  }, [ns.metadata.name]);
-
-  const deleteNamespace = () => {
-    setDeleting(true);
-    setDeleteError(null);
-    namespacesApiClient
-      .fetch({ name: ns.metadata.name, method: 'DELETE' })
-      .then(() => {
-        setDeleteOpen(false);
-        setDeleting(false);
-        onDeleted();
-      })
-      .catch((e: unknown) => {
-        setDeleteError(e instanceof Error ? e.message : t('Failed to delete namespace'));
-        setDeleting(false);
-      });
-  };
-
-  return (
-    <>
-      {canDelete && (
-        <Button
-          variant="plain"
-          aria-label={t('Delete {{name}}', { name: ns.metadata.name })}
-          onClick={() => {
-            setDeleteOpen(true);
-          }}
-        >
-          <TrashIcon />
-        </Button>
-      )}
-      {deleteOpen && (
-        <Modal
-          isOpen
-          onClose={() => {
-            setDeleteOpen(false);
-          }}
-          variant="small"
-        >
-          <ModalHeader title={t('Delete Namespace')} />
-          <ModalBody>
-            {deleteError && (
-              <Alert
-                variant="danger"
-                title={t('Error')}
-                isInline
-                className="console-plugin-capsule__alert"
-              >
-                {deleteError}
-              </Alert>
-            )}
-            {t('Are you sure you want to delete namespace {{name}}? This cannot be undone.', {
-              name: ns.metadata.name,
-            })}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant="danger"
-              onClick={deleteNamespace}
-              isDisabled={deleting}
-              isLoading={deleting}
-            >
-              {t('Delete')}
-            </Button>
-            <Button
-              variant="link"
-              onClick={() => {
-                setDeleteOpen(false);
-              }}
-              isDisabled={deleting}
-            >
-              {t('Cancel')}
-            </Button>
-          </ModalFooter>
-        </Modal>
-      )}
-    </>
-  );
-}
 
 export default function TenantNamespacesPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
@@ -169,20 +27,7 @@ export default function TenantNamespacesPage() {
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantSelectOpen, setTenantSelectOpen] = useState(false);
-  const [fetchResult, setFetchResult] = useState<{
-    fetchedFor: string;
-    namespaces: V1NamespaceString[];
-    loadError: string | null;
-  }>({ fetchedFor: '', namespaces: [], loadError: null });
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const pluginConfig = usePluginConfig();
   const [refreshToken, setRefreshToken] = useState(0);
-  const [pendingNamespace, setPendingNamespace] = useState<string | null>(null);
-  const [pendingNamespaceTimedOut, setPendingNamespaceTimedOut] = useState(false);
-  const pendingAttemptsRef = useRef(0);
-
-  const fetchKey = selectedTenant ? `${selectedTenant}:${String(refreshToken)}` : '';
-  const loaded = !fetchKey || fetchResult.fetchedFor === fetchKey;
 
   useEffect(() => {
     tenantApiClient
@@ -202,102 +47,13 @@ export default function TenantNamespacesPage() {
     }
   }, [tenants, selectedTenant, navigate, location.pathname]);
 
-  useEffect(() => {
-    if (!pendingNamespace || !loaded) return;
-    const found = fetchResult.namespaces.some((ns) => ns.metadata.name === pendingNamespace);
-    if (found) {
-      pendingAttemptsRef.current = 0;
-      setPendingNamespace(null);
-      return;
-    }
-    if (pendingAttemptsRef.current >= MAX_PENDING_NAMESPACE_ATTEMPTS) {
-      pendingAttemptsRef.current = 0;
-      setPendingNamespace(null);
-      setPendingNamespaceTimedOut(true);
-      return;
-    }
-    const timer = setTimeout(() => {
-      pendingAttemptsRef.current += 1;
-      setRefreshToken((n) => n + 1);
-    }, 1000);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [pendingNamespace, loaded, fetchResult.namespaces]);
-
-  useEffect(() => {
-    if (!fetchKey) return;
-    namespacesApiClient
-      .fetch({
-        labelSelector: {
-          'capsule.clastix.io/tenant': selectedTenant,
-        },
-      })
-      .then((data) => {
-        setFetchResult({ fetchedFor: fetchKey, namespaces: data.items, loadError: null });
-      })
-      .catch((e: unknown) => {
-        setFetchResult({
-          fetchedFor: fetchKey,
-          namespaces: [],
-          loadError: e instanceof Error ? e.message : t('Failed to fetch namespaces'),
-        });
-      });
-  }, [fetchKey, selectedTenant, t]);
-
   const selectedTenantObj = tenants.find((tenant) => tenant.metadata.name === selectedTenant);
-  const onNamespaceCreated = (name: string) => {
-    setPendingNamespace(name);
-    setRefreshToken((n) => n + 1);
-  };
 
   const onTenantSelect = (_: MouseEvent | undefined, value: string | number | undefined) => {
     const name = String(value);
     setTenantSelectOpen(false);
     navigate(`${location.pathname}?tenant=${name}`);
   };
-
-  const { filtered, filters, onSetFilters } = useNameFilter(fetchResult.namespaces);
-  const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
-    useSortedPaginated(filtered, COLUMN_KEYS, getSortValue);
-
-  const columnLabels: Record<ColumnKey, string> = {
-    name: t('Name'),
-    status: t('Status'),
-    created: t('Created'),
-  };
-
-  const columns = buildColumns(columnLabels);
-
-  const rows: DataViewTr[] = paginated.map((ns) => [
-    <Button
-      key="name"
-      variant="link"
-      isInline
-      onClick={() => {
-        navigate(`/capsule-namespaces/${ns.metadata.name}`);
-      }}
-    >
-      {ns.metadata.name}
-    </Button>,
-    ns.status?.phase ?? '—',
-    <Timestamp key="ts" timestamp={ns.metadata.creationTimestamp} />,
-    <NamespaceDeleteTr
-      key="delete"
-      ns={ns}
-      onDeleted={() => {
-        setRefreshToken((n) => n + 1);
-      }}
-    />,
-  ]);
-
-  const activeState = !loaded
-    ? DataViewState.loading
-    : fetchResult.loadError
-      ? DataViewState.error
-      : filtered.length === 0
-        ? DataViewState.empty
-        : undefined;
 
   const tenantToggle = (toggleRef: RefObject<HTMLButtonElement>) => (
     <MenuToggle
@@ -325,123 +81,35 @@ export default function TenantNamespacesPage() {
           <SyncAltIcon />
         </Button>
       </ListPageHeader>
-      {pendingNamespaceTimedOut && (
-        <Alert
-          variant="info"
-          isInline
-          title={t(
-            'Namespace creation is taking longer than expected. It may still complete in the background.',
-          )}
-          className="console-plugin-capsule__alert"
-          actionClose={
-            <AlertActionCloseButton
-              onClose={() => {
-                setPendingNamespaceTimedOut(false);
-              }}
-            />
-          }
-        />
-      )}
-      <DataView activeState={activeState}>
-        {/* A plain Toolbar rather than DataViewToolbar: the latter wraps `actions` in a
-            ToolbarItem we can't align, and the create buttons belong on the right. */}
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <Select
-                isOpen={tenantSelectOpen}
-                selected={selectedTenant}
-                onSelect={onTenantSelect}
-                onOpenChange={setTenantSelectOpen}
-                toggle={tenantToggle}
-                shouldFocusToggleOnSelect
-              >
-                <SelectList>
-                  {tenants.map((tenant) => (
-                    <SelectOption
-                      key={tenant.metadata.name}
-                      value={tenant.metadata.name}
-                      isSelected={tenant.metadata.name === selectedTenant}
-                    >
-                      {tenant.metadata.name}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </ToolbarItem>
-            <ToolbarItem>
-              <DataViewTextFilter
-                filterId="name"
-                title={t('Name')}
-                value={filters.name}
-                onChange={(_e, val) => {
-                  onSetFilters({ name: val });
-                }}
-              />
-            </ToolbarItem>
-            <ToolbarItem align={{ default: 'alignEnd' }}>
-              <ActionList>
-                <ActionListGroup>
-                  {/* Addon buttons first, so the built-in "Create Namespace" is right-most. */}
-                  <CreateNamespaceActions
-                    tenant={selectedTenantObj}
-                    globalForceTenantPrefix={pluginConfig.forceTenantPrefix}
-                    onCreated={onNamespaceCreated}
-                  />
-                  <ActionListItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!selectedTenant}
-                      onClick={() => {
-                        setCreateModalOpen(true);
-                      }}
-                    >
-                      {t('Create Namespace')}
-                    </Button>
-                  </ActionListItem>
-                </ActionListGroup>
-              </ActionList>
-            </ToolbarItem>
-            <ToolbarItem
-              variant="pagination"
-              className="console-plugin-capsule__toolbar-pagination"
+      <TenantNamespaceList
+        tenantName={selectedTenant}
+        tenant={selectedTenantObj}
+        refreshToken={refreshToken}
+        toolbarStart={
+          <ToolbarItem>
+            <Select
+              isOpen={tenantSelectOpen}
+              selected={selectedTenant}
+              onSelect={onTenantSelect}
+              onOpenChange={setTenantSelectOpen}
+              toggle={tenantToggle}
+              shouldFocusToggleOnSelect
             >
-              <Pagination
-                itemCount={sorted.length}
-                page={page}
-                perPage={perPage}
-                onSetPage={onSetPage}
-                onPerPageSelect={onPerPageSelect}
-                isCompact
-              />
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-        <DataViewTable
-          columns={columns}
-          rows={rows}
-          bodyStates={{
-            [DataViewState.loading]: <Spinner aria-label={t('Loading namespaces')} />,
-            [DataViewState.error]: <>{fetchResult.loadError}</>,
-            [DataViewState.empty]: <>{t('No namespaces found.')}</>,
-          }}
-        />
-      </DataView>
-      {createModalOpen && (
-        <CreateNamespaceModal
-          tenant={selectedTenant}
-          forceTenantPrefix={
-            pluginConfig.forceTenantPrefix || (selectedTenantObj?.spec.forceTenantPrefix ?? false)
-          }
-          onClose={() => {
-            setCreateModalOpen(false);
-          }}
-          onCreated={(name) => {
-            setCreateModalOpen(false);
-            onNamespaceCreated(name);
-          }}
-        />
-      )}
+              <SelectList>
+                {tenants.map((tenant) => (
+                  <SelectOption
+                    key={tenant.metadata.name}
+                    value={tenant.metadata.name}
+                    isSelected={tenant.metadata.name === selectedTenant}
+                  >
+                    {tenant.metadata.name}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
+          </ToolbarItem>
+        }
+      />
     </>
   );
 }

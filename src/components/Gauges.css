@@ -120,3 +120,169 @@
   flex-basis: 100%;
   justify-content: flex-end;
 }
+
+.console-plugin-capsule__gauges--compact {
+  padding: 0;
+}
+
+/* Tenant overview: details on the left, namespace-quota gauge on the right. */
+.console-plugin-capsule__overview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.console-plugin-capsule__card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+}
+
+/* Stacked quota bars (tenant overview): whole bar = hard limit, segments = namespace usage. */
+.console-plugin-capsule__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--sm);
+}
+
+.console-plugin-capsule__stack-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--md);
+  margin: 0 0 var(--pf-t--global--spacer--xs);
+  padding: 0;
+  list-style: none;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.console-plugin-capsule__stack-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.console-plugin-capsule__stack-swatch {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 2px;
+}
+
+.console-plugin-capsule__stack-row {
+  display: grid;
+  grid-template-columns: 9rem minmax(8rem, 1fr) 14rem;
+  align-items: center;
+  column-gap: var(--pf-t--global--spacer--md);
+  font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.console-plugin-capsule__stack-resource {
+  white-space: nowrap;
+}
+
+.console-plugin-capsule__stack-summary {
+  color: var(--pf-t--global--text--color--subtle);
+  white-space: nowrap;
+}
+
+/* Transparent container: the 2px gaps between segments and the free remainder show the
+   card surface, which separates neighbours without drawing strokes around them. */
+.console-plugin-capsule__stack-bar {
+  display: flex;
+  gap: 2px;
+  height: 0.875rem;
+}
+
+.console-plugin-capsule__stack-segment {
+  flex-shrink: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.console-plugin-capsule__stack-segment:first-child {
+  border-start-start-radius: 4px;
+  border-end-start-radius: 4px;
+}
+
+.console-plugin-capsule__stack-segment:focus-visible {
+  outline: 2px solid var(--pf-t--global--border--color--clicked);
+  outline-offset: 1px;
+}
+
+.console-plugin-capsule__stack-segment--other,
+.console-plugin-capsule__stack-swatch--other {
+  background-color: var(--pf-t--color--gray--50);
+}
+
+/* Usage from other tenants' namespaces: hatched, so it reads as "not yours" without a hue. */
+.console-plugin-capsule__stack-segment--outside,
+.console-plugin-capsule__stack-swatch--outside {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--pf-t--color--gray--50) 0 2px,
+    transparent 2px 5px
+  );
+  box-shadow: inset 0 0 0 1px var(--pf-t--color--gray--50);
+}
+
+.console-plugin-capsule__stack-free {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 0 4px 4px 0;
+
+  /* An empty outlined slot, so "free" can't be mistaken for the grey "Other namespaces". */
+  border: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.console-plugin-capsule__stack-segment:first-child:only-child,
+.console-plugin-capsule__stack-free:only-child {
+  border-radius: 4px;
+}
+
+/* Fill patterns for namespaces past the fourth, drawn in the surface colour over the namespace
+   colour so it stays recognisable: 1 = diagonal stripes, 2 = grid, 3 = dots. Used on bar
+   segments and legend swatches alike. */
+.console-plugin-capsule__stack-pattern--1 {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    var(--pf-t--global--background--color--primary--default) 3px 5px
+  );
+}
+
+.console-plugin-capsule__stack-pattern--2 {
+  background-image:
+    linear-gradient(var(--pf-t--global--background--color--primary--default) 1.5px, transparent 1.5px),
+    linear-gradient(
+      90deg,
+      var(--pf-t--global--background--color--primary--default) 1.5px,
+      transparent 1.5px
+    );
+  background-size: 5px 5px;
+}
+
+.console-plugin-capsule__stack-pattern--3 {
+  /* Small, widely spaced dots: larger ones leave colour lines between them that read as a grid. */
+  background-image: radial-gradient(
+    circle,
+    var(--pf-t--global--background--color--primary--default) 1px,
+    transparent 1.5px
+  );
+  background-size: 6px 6px;
+  background-position: 1px 1px;
+}
+
+.console-plugin-capsule__stack-tooltip-list {
+  margin: var(--pf-t--global--spacer--xs) 0 0;
+  padding-inline-start: var(--pf-t--global--spacer--md);
+  text-align: start;
+}
+
+.console-plugin-capsule__detail-chart {
+  padding: var(--pf-t--global--spacer--lg) 0;
+}

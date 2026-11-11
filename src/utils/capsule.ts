@@ -174,6 +174,10 @@ export interface Tenant {
   spec: {
     owners?: TenantOwner[];
     forceTenantPrefix?: boolean;
+    namespaceOptions?: {
+      /** Maximum number of namespaces the tenant may have; unset means unlimited. */
+      quota?: number;
+    };
   };
   status?: {
     namespaces?: string[];

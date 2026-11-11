@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import {
@@ -8,9 +7,8 @@ import {
   useAccessReview,
   DocumentTitle,
 } from '@openshift-console/dynamic-plugin-sdk';
-import { Button, Label, LabelGroup, Pagination, Spinner } from '@patternfly/react-core';
-import type { LabelProps } from '@patternfly/react-core';
-import { CogIcon, SyncAltIcon, UserIcon, UsersIcon } from '@patternfly/react-icons';
+import { Button, Pagination, Spinner } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { DataViewTr } from '@patternfly/react-data-view';
 import {
   DataView,
@@ -19,41 +17,13 @@ import {
   DataViewTextFilter,
   DataViewToolbar,
 } from '@patternfly/react-data-view';
-import type { Tenant, TenantOwner } from '../utils/capsule';
+import type { Tenant } from '../utils/capsule';
+import { OwnerLabels } from './OwnerLabels';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import { tenantNamespaceCount } from '../utils/common';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 import { AddonSlot } from '../addons/AddonSlot';
 import { useAddonWidgets } from '../addons/registry';
-
-// Fixed colour + icon per owner kind, so users, groups and service accounts are told apart
-// at a glance without spelling the kind out next to every name.
-const OWNER_KIND_STYLE: Record<string, { color: LabelProps['color']; icon: ReactNode }> = {
-  User: { color: 'blue', icon: <UserIcon /> },
-  Group: { color: 'purple', icon: <UsersIcon /> },
-  ServiceAccount: { color: 'orange', icon: <CogIcon /> },
-};
-
-function OwnerLabels({ owners }: { owners: TenantOwner[] }) {
-  if (owners.length === 0) return <>—</>;
-  return (
-    <LabelGroup numLabels={5}>
-      {owners.map((o) => {
-        const style = OWNER_KIND_STYLE[o.kind] ?? { color: 'grey' as const, icon: undefined };
-        return (
-          <Label
-            key={`${o.kind}/${o.name}`}
-            color={style.color}
-            icon={style.icon}
-            title={`${o.name} (${o.kind})`}
-          >
-            {o.name}
-          </Label>
-        );
-      })}
-    </LabelGroup>
-  );
-}
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number] | 'extensions';
@@ -144,7 +114,7 @@ export default function TenantsPage() {
       variant="link"
       isInline
       onClick={() => {
-        navigate(`/capsule-namespaces?tenant=${tenant.metadata.name}`);
+        navigate(`/capsule-tenants/${tenant.metadata.name}`);
       }}
     >
       {tenant.metadata.name}

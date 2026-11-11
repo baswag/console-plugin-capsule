@@ -17,8 +17,9 @@ import {
 import { SyncAltIcon } from '@patternfly/react-icons';
 import type { GlobalResourceQuota } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
-import { grqNamespaceCount, readyConditionStatus, UsageGauge } from '../utils/common';
+import { grqNamespaceCount, readyConditionStatus } from '../utils/common';
 import { GlobalResourceQuotaNamespaceUsageTable } from './GlobalResourceQuotaNamespaceUsageTable';
+import { QuotaStackedBars } from './QuotaStackedBars';
 import './Gauges.css';
 
 const globalResourceQuotasApi = new CapsuleClient<GlobalResourceQuota>(
@@ -71,8 +72,6 @@ export default function GlobalResourceQuotaDetailPage() {
   const readyStatus = readyConditionStatus(grq?.status?.conditions);
   const readyCondition = grq?.status?.conditions?.find((c) => c.type === 'Ready');
   const namespaceCount = grqNamespaceCount(grq?.status);
-  const hard = grq?.status?.total?.hard ?? grq?.spec.quota.hard ?? {};
-  const used = grq?.status?.total?.used ?? {};
 
   return (
     <>
@@ -136,16 +135,8 @@ export default function GlobalResourceQuotaDetailPage() {
             className="console-plugin-capsule__info-alert"
           />
         ) : (
-          <div className="console-plugin-capsule__gauges">
-            {Object.keys(hard).map((resource) => (
-              <UsageGauge
-                key={resource}
-                resource={resource}
-                used={used[resource]}
-                hard={hard[resource]}
-              />
-            ))}
-            {Object.keys(hard).length === 0 && <span>{t('No resource limits defined.')}</span>}
+          <div className="console-plugin-capsule__detail-chart">
+            <QuotaStackedBars grq={grq} />
           </div>
         )}
       </PageSection>

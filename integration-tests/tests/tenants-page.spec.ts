@@ -102,4 +102,62 @@ test.describe('Capsule console plugin', () => {
     await page.goto('/capsule-tenants');
     await expect(page.getByRole('columnheader', { name: 'Extensions' })).toBeVisible();
   });
+
+  test('Tenant overview shows owners, namespace quota, namespaces and quotas', async ({ page }) => {
+    const proxy = '**/api/proxy/plugin/console-plugin-capsule/capsule';
+    const meta = (name: string) => ({ name, creationTimestamp: '2026-01-01T00:00:00Z' });
+    await page.route(`${proxy}/apis/capsule.clastix.io/v1beta2/tenants/e2e`, (route) =>
+      route.fulfill({
+        json: {
+          metadata: meta('e2e'),
+          spec: { namespaceOptions: { quota: 2 } },
+          status: {
+            state: 'Active',
+            size: 2,
+            namespaces: ['e2e-a', 'e2e-b'],
+            owners: [
+              { kind: 'User', name: 'alice' },
+              { kind: 'Group', name: 'e2e-admins' },
+            ],
+          },
+        },
+      }),
+    );
+    await page.route(`${proxy}/api/v1/namespaces/?labelSelector=*`, (route) =>
+      route.fulfill({
+        json: {
+          items: ['e2e-a', 'e2e-b'].map((name) => ({ metadata: meta(name), status: {} })),
+        },
+      }),
+    );
+    await page.route(`${proxy}/apis/capsule.clastix.io/v1beta2/globalresourcequotas`, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              metadata: meta('e2e-grq'),
+              spec: { quota: { hard: { pods: 10 } } },
+              status: { namespaces: ['e2e-a', 'other'], total: { hard: { pods: 10 }, used: {} } },
+            },
+            {
+              metadata: meta('unrelated-grq'),
+              spec: { quota: { hard: { pods: 10 } } },
+              status: { namespaces: ['other'] },
+            },
+          ],
+        },
+      }),
+    );
+
+    await page.goto('/capsule-tenants/e2e');
+    await expect(page).toHaveTitle(/Tenant: e2e/);
+    await expect(page.getByTestId('tenant-owners')).toContainText('alice');
+    await expect(page.getByTestId('tenant-owners')).toContainText('e2e-admins');
+    await expect(page.getByTestId('tenant-namespace-quota')).toContainText('2 of 2');
+    await expect(page.getByRole('button', { name: 'e2e-b' })).toBeVisible();
+    // Quota reached: creating another namespace is blocked.
+    await expect(page.getByTestId('create-namespace')).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId('tenant-grq-e2e-grq')).toBeVisible();
+    await expect(page.getByTestId('tenant-grq-unrelated-grq')).toHaveCount(0);
+  });
 });
