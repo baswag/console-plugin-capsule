@@ -2,10 +2,24 @@ import { DEFAULT_PLUGIN_CONFIG, loadPluginConfig, parsePluginConfig } from './pl
 
 describe('parsePluginConfig', () => {
   it('reads forceTenantPrefix', () => {
-    expect(parsePluginConfig({ forceTenantPrefix: true })).toEqual({ forceTenantPrefix: true });
+    expect(parsePluginConfig({ forceTenantPrefix: true })).toEqual({
+      ...DEFAULT_PLUGIN_CONFIG,
+      forceTenantPrefix: true,
+    });
   });
 
-  it.each([null, 'x', [], {}, { forceTenantPrefix: 'true' }])(
+  it('reads showTenantResources', () => {
+    expect(parsePluginConfig({ showTenantResources: false })).toEqual({
+      ...DEFAULT_PLUGIN_CONFIG,
+      showTenantResources: false,
+    });
+  });
+
+  it('shows Tenant Resources by default', () => {
+    expect(DEFAULT_PLUGIN_CONFIG.showTenantResources).toBe(true);
+  });
+
+  it.each([null, 'x', [], {}, { forceTenantPrefix: 'true' }, { showTenantResources: 'no' }])(
     'falls back to defaults for %p',
     (raw) => {
       expect(parsePluginConfig(raw)).toEqual(DEFAULT_PLUGIN_CONFIG);
@@ -24,7 +38,10 @@ describe('loadPluginConfig', () => {
       ok: true,
       json: () => Promise.resolve({ forceTenantPrefix: true }),
     });
-    await expect(loadPluginConfig('/config.json')).resolves.toEqual({ forceTenantPrefix: true });
+    await expect(loadPluginConfig('/config.json')).resolves.toEqual({
+      ...DEFAULT_PLUGIN_CONFIG,
+      forceTenantPrefix: true,
+    });
   });
 
   it('uses defaults when config.json is missing', async () => {

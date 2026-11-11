@@ -100,7 +100,8 @@
       "GlobalResourceQuotasPage": "./components/GlobalResourceQuotasPage",
       "GlobalResourceQuotaDetailPage": "./components/GlobalResourceQuotaDetailPage",
       "TenantNamespaceDetailPage": "./components/TenantNamespaceDetailPage",
-      "TenantResourcePage": "./components/TenantResourcePage"
+      "TenantResourcePage": "./components/TenantResourcePage",
+      "pluginFlags": "./utils/pluginFlags"
     },
     "dependencies": {
       "@console/pluginAPI": "^4.20.0"

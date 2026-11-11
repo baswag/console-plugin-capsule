@@ -1,5 +1,11 @@
 [
   {
+    "type": "console.flag",
+    "properties": {
+      "handler": { "$codeRef": "pluginFlags.setConfigFlags" }
+    }
+  },
+  {
     "type": "console.navigation/section",
     "properties": {
       "id": "capsule",
@@ -91,7 +97,8 @@
       "exact": true,
       "path": "/capsule-tenant-resources",
       "component": { "$codeRef": "TenantResourcePage" }
-    }
+    },
+    "flags": { "required": ["CAPSULE_TENANT_RESOURCES"] }
   },
   {
     "type": "console.navigation/href",
@@ -101,6 +108,7 @@
       "href": "/capsule-tenant-resources",
       "perspective": "admin",
       "section": "capsule"
-    }
+    },
+    "flags": { "required": ["CAPSULE_TENANT_RESOURCES"] }
   }
 ]

@@ -24,11 +24,12 @@ The section contains these pages:
 | Page | Route | Description |
 | --- | --- | --- |
 | Tenants | `/capsule-tenants` | Lists Capsule tenants, with their state, namespace count, and owners. |
+| Tenant overview | `/capsule-tenants/:name` | Shows a tenant's owners, namespace quota, namespaces (with create and delete), and the GlobalResourceQuotas that cover it. |
 | Tenant Namespaces | `/capsule-namespaces` | Lists namespaces that belong to tenants. Creates and deletes tenant namespaces. |
 | Tenant Namespace detail | `/capsule-namespaces/:name` | Shows namespace metadata, a labels and annotations editor, and resource quota usage. |
 | Global Resource Quotas | `/capsule-global-resource-quotas` | Lists Capsule `GlobalResourceQuota` resources and their status. |
 | Global Resource Quota detail | `/capsule-global-resource-quotas/:name` | Shows quota usage for each namespace in a `GlobalResourceQuota`. |
-| Tenant Resources | `/capsule-tenant-resources` | Lists Capsule `TenantResource` resources for each tenant. |
+| Tenant Resources | `/capsule-tenant-resources` | Lists Capsule `TenantResource` resources for each tenant. Can be hidden with `plugin.config.showTenantResources=false`. |
 
 You can add cluster-specific widgets to the tenant namespace page and the Tenants table
 without rebuilding the plugin. Examples are label toggles for platform features, or an expiry
@@ -150,6 +151,10 @@ helm upgrade -i console-plugin-capsule charts/openshift-console-plugin \
 If Capsule's global `forceTenantPrefix` option is enabled, set
 `--set plugin.config.forceTenantPrefix=true` so the "Create namespace" dialog requires the
 `<tenant>-` prefix for every tenant, not only those with `spec.forceTenantPrefix: true`.
+
+If you don't use Capsule `TenantResource`s, set `--set plugin.config.showTenantResources=false`
+to hide the Tenant Resources page and its navigation item. The setting is read when the console
+loads, so users see the change after reloading the console.
 
 To add addons, set `plugin.addons`. See [docs/addons.md](docs/addons.md) and
 [examples/k8s/values-addons.yaml](examples/k8s/values-addons.yaml).

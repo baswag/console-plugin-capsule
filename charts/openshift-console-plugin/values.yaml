@@ -43,6 +43,9 @@ plugin:
     # tenant's spec.forceTenantPrefix. Set this when Capsule's global forceTenantPrefix
     # option is enabled, so the create-namespace dialog matches what Capsule enforces.
     forceTenantPrefix: false
+    # Show the "Tenant Resources" page and its navigation item. Set to false to hide them, e.g.
+    # when TenantResources aren't used on this cluster.
+    showTenantResources: true
   # Addons add cluster-specific widgets (label toggles, label/annotation badges, custom JS
   # modules) to the Capsule pages without rebuilding the plugin. Each entry is mounted
   # read-only at <nginx root>/addons/<name>/ and must contain a manifest.json; `volume` is any

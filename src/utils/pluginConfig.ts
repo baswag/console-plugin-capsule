@@ -10,10 +10,13 @@ export interface PluginConfig {
    * tenant's own `spec.forceTenantPrefix`. Mirrors Capsule's global `forceTenantPrefix` option.
    */
   forceTenantPrefix: boolean;
+  /** Show the Tenant Resources page and its navigation item. */
+  showTenantResources: boolean;
 }
 
 export const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
   forceTenantPrefix: false,
+  showTenantResources: true,
 };
 
 const FALLBACK_PUBLIC_PATH = '/api/plugins/console-plugin-capsule/';
@@ -31,8 +34,9 @@ export function pluginBaseUrl(): string {
 export function parsePluginConfig(raw: unknown): PluginConfig {
   const config = { ...DEFAULT_PLUGIN_CONFIG };
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return config;
-  const { forceTenantPrefix } = raw as Record<string, unknown>;
+  const { forceTenantPrefix, showTenantResources } = raw as Record<string, unknown>;
   if (typeof forceTenantPrefix === 'boolean') config.forceTenantPrefix = forceTenantPrefix;
+  if (typeof showTenantResources === 'boolean') config.showTenantResources = showTenantResources;
   return config;
 }
 
