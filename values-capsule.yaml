@@ -9,6 +9,13 @@ global:
         enabled: false
 proxy:
   enabled: true
+  certManager:
+    generateCertificates: false
+  service:
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: dcs-capsule-proxy-tls
+  options:
+    certificateVolumeName: dcs-capsule-proxy-tls
 
 manager:
   options:
