@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom-v5-compat';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,15 +21,16 @@ import type { Tenant } from '../utils/capsule';
 import { OwnerLabels } from './OwnerLabels';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import { tenantNamespaceCount } from '../utils/common';
+import { usePluginConfig } from '../utils/pluginConfig';
 import { useNameFilter, useSortedPaginated } from '../utils/useListPage';
 import { AddonSlot } from '../addons/AddonSlot';
 import { useAddonWidgets } from '../addons/registry';
 
 const COLUMN_KEYS = ['name', 'state', 'namespaceCount', 'owners', 'created'] as const;
 type ColumnKey = (typeof COLUMN_KEYS)[number] | 'extensions';
-// The "extensions" column is appended last (only when addons target tenant rows), so the
-// indices of the regular columns, which sorting relies on, don't move.
-const COLUMN_KEYS_WITH_EXTENSIONS: readonly ColumnKey[] = [...COLUMN_KEYS, 'extensions'];
+// "owners" is dropped when plugin.config.showTenantOwners is off, and "extensions" is appended
+// last only when addons target tenant rows. Sorting is keyed by column key, so the visible
+// column list may change without breaking the active sort.
 const UNSORTABLE: ColumnKey[] = ['owners', 'extensions'];
 
 const tenantApi = new CapsuleClient<Tenant>(CAPSULE_APIS.TENANTS);
@@ -82,6 +83,14 @@ export default function TenantsPage() {
 
   const { widgets: addonWidgets } = useAddonWidgets('tenant.row');
   const hasExtensions = addonWidgets.length > 0;
+  const { showTenantOwners } = usePluginConfig();
+  const columnKeys = useMemo<readonly ColumnKey[]>(
+    () => [
+      ...COLUMN_KEYS.filter((key) => showTenantOwners || key !== 'owners'),
+      ...(hasExtensions ? (['extensions'] as const) : []),
+    ],
+    [showTenantOwners, hasExtensions],
+  );
   const onTenantUpdated = useCallback((updated: Tenant) => {
     setTenants((prev) =>
       prev.map((tn) => (tn.metadata.name === updated.metadata.name ? updated : tn)),
@@ -90,12 +99,7 @@ export default function TenantsPage() {
 
   const { filtered, filters, onSetFilters } = useNameFilter(tenants);
   const { sorted, paginated, page, perPage, onSetPage, onPerPageSelect, buildColumns } =
-    useSortedPaginated(
-      filtered,
-      hasExtensions ? COLUMN_KEYS_WITH_EXTENSIONS : COLUMN_KEYS,
-      getSortValue,
-      UNSORTABLE,
-    );
+    useSortedPaginated(filtered, columnKeys, getSortValue, UNSORTABLE);
 
   const columnLabels: Record<ColumnKey, string> = {
     name: t('Name'),
@@ -121,7 +125,9 @@ export default function TenantsPage() {
     </Button>,
     tenant.status?.state ?? '—',
     String(tenantNamespaceCount(tenant.status)),
-    <OwnerLabels key="owners" owners={tenant.status?.owners ?? []} />,
+    ...(showTenantOwners
+      ? [<OwnerLabels key="owners" owners={tenant.status?.owners ?? []} />]
+      : []),
     <Timestamp key="ts" timestamp={tenant.metadata.creationTimestamp} />,
     ...(hasExtensions
       ? [

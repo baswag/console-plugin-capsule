@@ -12,11 +12,14 @@ export interface PluginConfig {
   forceTenantPrefix: boolean;
   /** Show the Tenant Resources page and its navigation item. */
   showTenantResources: boolean;
+  /** Show tenant owners in the Tenants list and on the tenant overview page. */
+  showTenantOwners: boolean;
 }
 
 export const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
   forceTenantPrefix: false,
   showTenantResources: true,
+  showTenantOwners: true,
 };
 
 const FALLBACK_PUBLIC_PATH = '/api/plugins/console-plugin-capsule/';
@@ -34,9 +37,13 @@ export function pluginBaseUrl(): string {
 export function parsePluginConfig(raw: unknown): PluginConfig {
   const config = { ...DEFAULT_PLUGIN_CONFIG };
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return config;
-  const { forceTenantPrefix, showTenantResources } = raw as Record<string, unknown>;
+  const { forceTenantPrefix, showTenantResources, showTenantOwners } = raw as Record<
+    string,
+    unknown
+  >;
   if (typeof forceTenantPrefix === 'boolean') config.forceTenantPrefix = forceTenantPrefix;
   if (typeof showTenantResources === 'boolean') config.showTenantResources = showTenantResources;
+  if (typeof showTenantOwners === 'boolean') config.showTenantOwners = showTenantOwners;
   return config;
 }
 

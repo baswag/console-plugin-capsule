@@ -22,6 +22,7 @@ import { SyncAltIcon } from '@patternfly/react-icons';
 import type { GlobalResourceQuota, Tenant } from '../utils/capsule';
 import { CAPSULE_APIS, CapsuleClient } from '../utils/capsule';
 import { readyConditionStatus, tenantNamespaceCount, UsageGauge } from '../utils/common';
+import { usePluginConfig } from '../utils/pluginConfig';
 import { OwnerLabels } from './OwnerLabels';
 import { QuotaStackedBars } from './QuotaStackedBars';
 import { TenantNamespaceList } from './TenantNamespaceList';
@@ -89,6 +90,7 @@ function TenantGlobalResourceQuotaCard({
 export default function TenantOverviewPage() {
   const { t } = useTranslation('plugin__console-plugin-capsule');
   const { name = '' } = useParams<{ name: string }>();
+  const { showTenantOwners } = usePluginConfig();
 
   const [tenant, setTenant] = useState<Tenant | undefined>(undefined);
   const [loaded, setLoaded] = useState(false);
@@ -183,12 +185,14 @@ export default function TenantOverviewPage() {
               <DescriptionListTerm>{t('State')}</DescriptionListTerm>
               <DescriptionListDescription>{tenant.status?.state ?? '—'}</DescriptionListDescription>
             </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>{t('Owners')}</DescriptionListTerm>
-              <DescriptionListDescription data-test="tenant-owners">
-                <OwnerLabels owners={tenant.status?.owners ?? []} />
-              </DescriptionListDescription>
-            </DescriptionListGroup>
+            {showTenantOwners && (
+              <DescriptionListGroup>
+                <DescriptionListTerm>{t('Owners')}</DescriptionListTerm>
+                <DescriptionListDescription data-test="tenant-owners">
+                  <OwnerLabels owners={tenant.status?.owners ?? []} />
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            )}
             <DescriptionListGroup>
               <DescriptionListTerm>{t('Namespaces')}</DescriptionListTerm>
               <DescriptionListDescription>

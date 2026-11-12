@@ -9,7 +9,7 @@ data:
   # Read by the plugin at runtime to discover the addons mounted below addons/.
   addons-index.json: {{ include "openshift-console-plugin.addonsIndex" . | quote }}
   # Read by the plugin at runtime for deployment-wide settings (plugin.config).
-  config.json: {{ dict "forceTenantPrefix" (.Values.plugin.config.forceTenantPrefix | default false) "showTenantResources" (ne .Values.plugin.config.showTenantResources false) | toJson | quote }}
+  config.json: {{ dict "forceTenantPrefix" (.Values.plugin.config.forceTenantPrefix | default false) "showTenantResources" (ne .Values.plugin.config.showTenantResources false) "showTenantOwners" (ne .Values.plugin.config.showTenantOwners false) | toJson | quote }}
   custom.conf: |
     server {
       listen              {{ .Values.plugin.port }} ssl;

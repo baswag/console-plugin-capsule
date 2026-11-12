@@ -15,16 +15,32 @@ describe('parsePluginConfig', () => {
     });
   });
 
+  it('reads showTenantOwners', () => {
+    expect(parsePluginConfig({ showTenantOwners: false })).toEqual({
+      ...DEFAULT_PLUGIN_CONFIG,
+      showTenantOwners: false,
+    });
+  });
+
+  it('shows tenant owners by default', () => {
+    expect(DEFAULT_PLUGIN_CONFIG.showTenantOwners).toBe(true);
+  });
+
   it('shows Tenant Resources by default', () => {
     expect(DEFAULT_PLUGIN_CONFIG.showTenantResources).toBe(true);
   });
 
-  it.each([null, 'x', [], {}, { forceTenantPrefix: 'true' }, { showTenantResources: 'no' }])(
-    'falls back to defaults for %p',
-    (raw) => {
-      expect(parsePluginConfig(raw)).toEqual(DEFAULT_PLUGIN_CONFIG);
-    },
-  );
+  it.each([
+    null,
+    'x',
+    [],
+    {},
+    { forceTenantPrefix: 'true' },
+    { showTenantResources: 'no' },
+    { showTenantOwners: 0 },
+  ])('falls back to defaults for %p', (raw) => {
+    expect(parsePluginConfig(raw)).toEqual(DEFAULT_PLUGIN_CONFIG);
+  });
 });
 
 describe('loadPluginConfig', () => {

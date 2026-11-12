@@ -23,7 +23,7 @@ The section contains these pages:
 
 | Page | Route | Description |
 | --- | --- | --- |
-| Tenants | `/capsule-tenants` | Lists Capsule tenants, with their state, namespace count, and owners. |
+| Tenants | `/capsule-tenants` | Lists Capsule tenants, with their state, namespace count, and owners (owners can be hidden with `plugin.config.showTenantOwners=false`). |
 | Tenant overview | `/capsule-tenants/:name` | Shows a tenant's owners, namespace quota, namespaces (with create and delete), and the GlobalResourceQuotas that cover it. |
 | Tenant Namespaces | `/capsule-namespaces` | Lists namespaces that belong to tenants. Creates and deletes tenant namespaces. |
 | Tenant Namespace detail | `/capsule-namespaces/:name` | Shows namespace metadata, a labels and annotations editor, and resource quota usage. |
@@ -155,6 +155,10 @@ If Capsule's global `forceTenantPrefix` option is enabled, set
 If you don't use Capsule `TenantResource`s, set `--set plugin.config.showTenantResources=false`
 to hide the Tenant Resources page and its navigation item. The setting is read when the console
 loads, so users see the change after reloading the console.
+
+To hide tenant owners from the Tenants list and the tenant overview page, set
+`--set plugin.config.showTenantOwners=false`. This only affects what the plugin displays; the
+owners stay readable to anyone allowed to read the Tenant resource.
 
 To add addons, set `plugin.addons`. See [docs/addons.md](docs/addons.md) and
 [examples/k8s/values-addons.yaml](examples/k8s/values-addons.yaml).
