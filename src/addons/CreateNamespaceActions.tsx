@@ -78,6 +78,7 @@ export function CreateNamespaceActions({
       <CreateNamespaceModal
         tenant={tenantName}
         forceTenantPrefix={forceTenantPrefix}
+        namePrefix={open.prefix === undefined ? undefined : interpolate(open.prefix, vars)}
         title={renderText(open.title, lang, vars) ?? text}
         description={renderText(open.description, lang, vars)}
         presetLabels={labels.presets}

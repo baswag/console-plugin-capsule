@@ -44,6 +44,13 @@ export const TENANT_LABEL = 'capsule.clastix.io/tenant';
 /** Sample substitution so values with `{{tenant}}` can be checked before a tenant is known. */
 const withSampleTenant = (v: string) => v.replace(/\{\{\s*tenant\s*\}\}/g, 'tenant');
 
+/** A non-empty start of a namespace name (the user types the rest). */
+function isNamespacePrefix(v: unknown): boolean {
+  if (typeof v !== 'string' || v === '') return false;
+  const sample = withSampleTenant(v);
+  return sample.length < 63 && /^[a-z0-9][a-z0-9-]*$/.test(sample);
+}
+
 function metadataEntriesError(field: 'labels' | 'annotations', entries: unknown): string | null {
   if (!Array.isArray(entries)) return `"${field}" must be an array`;
   const seen = new Set<string>();
@@ -208,6 +215,9 @@ function validateWidget(w: unknown): string | null {
         typeof w.honorGlobalForceTenantPrefix !== 'boolean'
       ) {
         return '"honorGlobalForceTenantPrefix" must be a boolean';
+      }
+      if (w.prefix !== undefined && !isNamespacePrefix(w.prefix)) {
+        return '"prefix" must be the start of a valid namespace name (lowercase letters, digits and "-", starting with a letter or digit)';
       }
       for (const f of ['labels', 'annotations'] as const) {
         if (w[f] === undefined) continue;

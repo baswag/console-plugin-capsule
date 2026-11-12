@@ -206,6 +206,7 @@ describe('createNamespace widgets', () => {
           icon: 'pf:cube',
           description: { en: 'For {{tenant}}', de: 'Für {{tenant}}' },
           honorGlobalForceTenantPrefix: false,
+          prefix: 'sbx-{{tenant}}-',
           labels: [
             { key: 'platform.example.com/sandbox', value: 'true' },
             { key: 'owner', value: '{{tenant}}' },
@@ -232,6 +233,7 @@ describe('createNamespace widgets', () => {
         { type: 'createNamespace', id: 'notext', slot: 'namespaces.toolbar' },
         { ...create, id: 'badvariant', variant: 'danger' },
         { ...create, id: 'badhonor', honorGlobalForceTenantPrefix: 'yes' },
+        { ...create, id: 'badprefix', prefix: 'Sandbox_' },
         { ...create, id: 'badkey', labels: [{ key: 'not a key', value: 'x' }] },
         {
           ...create,
@@ -261,6 +263,7 @@ describe('createNamespace widgets', () => {
       'widget notext: missing "text"',
       'widget badvariant: "variant" must be "primary" or "secondary"',
       'widget badhonor: "honorGlobalForceTenantPrefix" must be a boolean',
+      'widget badprefix: "prefix" must be the start of a valid namespace name (lowercase letters, digits and "-", starting with a letter or digit)',
       'widget badkey: "labels[0]": "key" must be a valid label key',
       'widget tenantlabel: "labels[0]": "capsule.clastix.io/tenant" is set by the plugin',
       'widget badvalue: "labels[0]": "value" is not a valid label value',

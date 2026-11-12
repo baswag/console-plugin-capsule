@@ -39,6 +39,7 @@
       "text": "Create GPU namespace",
       "when": { "matchLabels": { "platform.example.com/tier": "premium" } },
       "honorGlobalForceTenantPrefix": false,
+      "prefix": "gpu-",
       "labels": [{ "key": "platform.example.com/gpu", "value": "enabled" }]
     }
   ]

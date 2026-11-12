@@ -131,6 +131,37 @@ it("always honors the tenant's own forceTenantPrefix", async () => {
   expect(screen.getByText('team-a-')).toBeInTheDocument();
 });
 
+it('uses the widget prefix unless a tenant prefix is forced', async () => {
+  mockWidgets.push({ ...base, id: 'sbx', text: 'Sandbox', prefix: 'sbx-{{tenant}}-' });
+  const onCreated = jest.fn();
+  const { unmount } = render(
+    <CreateNamespaceActions
+      tenant={tenant()}
+      globalForceTenantPrefix={false}
+      onCreated={onCreated}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Sandbox' }));
+  expect(screen.getByText('sbx-team-a-')).toBeInTheDocument();
+  await userEvent.type(screen.getByLabelText(/^Name/), 'one');
+  await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+  await waitFor(() => {
+    expect(onCreated).toHaveBeenCalledWith('sbx-team-a-one');
+  });
+  unmount();
+
+  render(
+    <CreateNamespaceActions
+      tenant={tenant({}, true)}
+      globalForceTenantPrefix={false}
+      onCreated={jest.fn()}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Sandbox' }));
+  expect(screen.getByText('team-a-')).toBeInTheDocument();
+  expect(screen.queryByText('sbx-team-a-')).not.toBeInTheDocument();
+});
+
 it('only shows buttons whose selector matches the tenant labels', () => {
   mockWidgets.push(
     { ...base, id: 'premium', text: 'Premium', when: { matchLabels: { tier: 'premium' } } },

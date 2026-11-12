@@ -52,6 +52,11 @@ interface CreateNamespaceModalProps {
   tenant: string;
   /** When set, the namespace name is forced to `<tenant>-<suffix>` and only the suffix is editable. */
   forceTenantPrefix: boolean;
+  /**
+   * Fixed prefix for the namespace name when `forceTenantPrefix` is off; only the rest of the
+   * name is editable. Ignored when `forceTenantPrefix` is set.
+   */
+  namePrefix?: string;
   /** Dialog title; defaults to "Create Namespace". */
   title?: string;
   description?: string;
@@ -84,6 +89,7 @@ function fieldError(
 export default function CreateNamespaceModal({
   tenant,
   forceTenantPrefix,
+  namePrefix = '',
   title,
   description,
   presetLabels = {},
@@ -101,7 +107,7 @@ export default function CreateNamespaceModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const prefix = forceTenantPrefix ? `${tenant}-` : '';
+  const prefix = forceTenantPrefix ? `${tenant}-` : namePrefix;
   const name = `${prefix}${input}`;
   const nameValid = input.length > 0 && NS_PATTERN.test(name);
   const showValidation = input.length > 0 && !nameValid;
@@ -168,7 +174,7 @@ export default function CreateNamespaceModal({
           }}
         >
           <FormGroup label={t('Name')} isRequired fieldId="ns-name">
-            {forceTenantPrefix ? (
+            {prefix ? (
               <InputGroup>
                 <InputGroupText id="ns-name-prefix">{prefix}</InputGroupText>
                 <InputGroupItem isFill>

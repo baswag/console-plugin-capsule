@@ -177,6 +177,12 @@ export interface CreateNamespaceWidget extends WidgetBase {
    * tenant's own `spec.forceTenantPrefix` always applies, because Capsule enforces it.
    */
   honorGlobalForceTenantPrefix?: boolean;
+  /**
+   * Fixed prefix of the namespace name, used when no tenant prefix is forced (neither the
+   * tenant's `spec.forceTenantPrefix` nor, if honored, the global setting). May contain
+   * `{{tenant}}`.
+   */
+  prefix?: string;
   labels?: MetadataEntry[];
   annotations?: MetadataEntry[];
 }

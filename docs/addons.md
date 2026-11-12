@@ -280,6 +280,7 @@ preset labels and annotations, and extra fields for the user to fill in. The slo
 | `icon` | – | Button icon. |
 | `variant` | `"secondary"` | `"primary"` or `"secondary"` button style. |
 | `honorGlobalForceTenantPrefix` | `true` | Whether the chart's `plugin.config.forceTenantPrefix` applies to this dialog. With `false`, the user can pick any name, unless the tenant's own `spec.forceTenantPrefix` is set: that one always applies, because Capsule rejects unprefixed names for such tenants anyway. |
+| `prefix` | – | Fixed start of the namespace name (e.g. `"sbx-{{tenant}}-"`), shown in front of the name field; the user types only the rest. Used only when no tenant prefix is forced (neither the tenant's `spec.forceTenantPrefix` nor, if honored, `plugin.config.forceTenantPrefix`); a forced `<tenant>-` prefix replaces it. Lowercase letters, digits and `-`, starting with a letter or digit. |
 | `labels`, `annotations` | `[]` | Entries to set on the new namespace, see below. |
 | `when` | – | [Label selector](#conditional-widgets-when) on the selected **tenant's** labels. The button is hidden when it doesn't match. |
 
@@ -293,7 +294,7 @@ Each entry in `labels` and `annotations` is one of two kinds:
   labels, the dialog checks the value against the Kubernetes label value rules.
 
 `text`, `title`, `description`, and the field `title`, `example` and `help` are text fields.
-In all of them, and in preset `value`s and `default`s, `{{tenant}}` is replaced by the tenant
+In all of them, and in preset `value`s, `default`s and `prefix`, `{{tenant}}` is replaced by the tenant
 name. Keys must be valid Kubernetes label/annotation keys, can't repeat within `labels` or
 within `annotations`, and `capsule.clastix.io/tenant` can't be set, because the plugin sets
 it.
